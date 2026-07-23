@@ -1,0 +1,17 @@
+# Binaries for SDKs and apps
+*.exe
+*.exe-
+*.dll
+*.so
+*.dylib
+
+# Test binary built with `go test -c`
+*.test
+
+# Output of the go build command
+/scribe
+
+# IDE files
+.idea/
+.vscode/
+*.swp
