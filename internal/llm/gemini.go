@@ -87,7 +87,7 @@ func (c *Client) GenerateCommitMessage(diff string) (string, error) {
 		return "", fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
-	url := fmt.Sprintf("[https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s](https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s)", c.Model, c.APIKey)
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s)", c.Model, c.APIKey)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {

@@ -27,3 +27,14 @@ func GetStagedDiff() (string, error) {
 
 	return filteredDiff, nil
 }
+
+func ExecuteCommit(message string) error {
+	cmd := exec.Command("git", "commit", "-m", message)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("git commit failed: %s", string(output))
+	}
+
+	return nil
+}
