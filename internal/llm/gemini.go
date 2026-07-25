@@ -41,16 +41,30 @@ func NewClient(apiKey string) *Client {
 	}
 }
 
+func buildSystemPrompt(diff string) string {
+	return fmt.Sprintf(`You are an automated Git commit message generator.
+Your job is to analyze the provided git diff and write a concise, professional commit message.
+
+STRICT RULES:
+1. Follow the Conventional Commits format: <type>(<scope>): <short summary>
+   - Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
+   - Scope is optional, but encouraged if changes are isolated to a module/package.
+2. Keep the first line (header) under 72 characters.
+3. Write in the imperative mood, present tense (e.g., "add feature", NOT "added feature" or "adds feature").
+4. Do NOT include markdown code blocks (e.g., no triple `+"````"+`).
+5. Do NOT include introductory words, explanations, or concluding remarks (e.g., NO "Here is your commit message:").
+6. Output raw text ONLY.
+
+Git Diff:
+%s`, diff)
+}
+
 func (c *Client) GenerateCommitMessage(diff string) (string, error) {
 	if c.APIKey == "" {
 		return "", fmt.Errorf("GEMINI_API_KEY environment variable is missing")
 	}
-	prompt := fmt.Sprintf(`You are an expert developer. Generate a clean, concise, and professional git commit message based on the following git diff.
-Follow the Conventional Commits format (e.g., feat:, fix:, docs:, refactor:, etc.).
-Do NOT include any markdown formatting, backticks, or extra explanation. Output ONLY the raw commit message.
 
-Git Diff:
-%s`, diff)
+	prompt := buildSystemPrompt(diff)
 
 	reqBody := GeminiRequest{
 		Contents: []Content{
@@ -96,6 +110,10 @@ Git Diff:
 	}
 
 	commitMessage := strings.TrimSpace(geminiResp.Candidates[0].Content.Parts[0].Text)
-	return commitMessage, nil
+	
+	commitMessage = strings.TrimPrefix(commitMessage, "```")
+	commitMessage = strings.TrimSuffix(commitMessage, "```")
+	commitMessage = strings.TrimSpace(commitMessage)
 
+	return commitMessage, nil
 }
