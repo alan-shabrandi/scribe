@@ -50,7 +50,6 @@ var generateCmd = &cobra.Command{
 
 		client := llm.NewClient(cfg.APIKey, cfg.Model)
 		commitMessage, err := client.GenerateCommitMessage(diff)
-
 		s.Stop()
 
 		if err != nil {
@@ -65,7 +64,7 @@ var generateCmd = &cobra.Command{
 
 		const (
 			OptionAccept = "Accept & Commit"
-			OptionEdit   = "Edit message"
+			OptionEdit   = "Edit message in system editor"
 			OptionCancel = "Cancel"
 		)
 
@@ -86,13 +85,9 @@ var generateCmd = &cobra.Command{
 			commitAndFinish(commitMessage)
 
 		case OptionEdit:
-			var editedMessage string
-			editPrompt := &survey.Input{
-				Message: "Edit commit message:",
-				Default: commitMessage,
-			}
-			if err := survey.AskOne(editPrompt, &editedMessage); err != nil {
-				fmt.Printf("%s Edit cancelled.\n", red("❌"))
+			editedMessage, err := git.OpenInEditor(commitMessage)
+			if err != nil {
+				fmt.Printf("%s Edit failed: %v\n", red("❌"), err)
 				os.Exit(1)
 			}
 			commitAndFinish(editedMessage)
