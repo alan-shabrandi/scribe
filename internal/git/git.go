@@ -14,11 +14,16 @@ func GetStagedDiff() (string, error) {
 		return "", fmt.Errorf("failed to execute git diff command: %w", err)
 	}
 
-	diff := strings.TrimSpace(string(output))
+	rawDiff := strings.TrimSpace(string(output))
 
-	if len(diff) == 0 {
+	if len(rawDiff) == 0 {
 		return "", fmt.Errorf("no staged changes found. Please stage your files using 'git add'")
 	}
 
-	return diff, nil
+	filteredDiff, err := FilterDiff(rawDiff)
+	if err != nil {
+		return "", err
+	}
+
+	return filteredDiff, nil
 }
