@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 )
+
 type Content struct {
 	Parts []Part `json:"parts"`
 }
@@ -29,12 +30,17 @@ type GeminiResponse struct {
 }
 type Client struct {
 	APIKey     string
+	Model      string
 	HTTPClient *http.Client
 }
 
-func NewClient(apiKey string) *Client {
+func NewClient(apiKey, model string) *Client {
+	if model == "" {
+		model = "gemini-1.5-flash"
+	}
 	return &Client{
 		APIKey: apiKey,
+		Model:  model,
 		HTTPClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -61,7 +67,7 @@ Git Diff:
 
 func (c *Client) GenerateCommitMessage(diff string) (string, error) {
 	if c.APIKey == "" {
-		return "", fmt.Errorf("GEMINI_API_KEY environment variable is missing")
+		return "", fmt.Errorf("API Key is missing. Please set it in ~/.scribe.yaml or SCRIBE_API_KEY environment variable")
 	}
 
 	prompt := buildSystemPrompt(diff)
@@ -81,7 +87,7 @@ func (c *Client) GenerateCommitMessage(diff string) (string, error) {
 		return "", fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=%s", c.APIKey)
+	url := fmt.Sprintf("[https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s](https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s)", c.Model, c.APIKey)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -110,10 +116,7 @@ func (c *Client) GenerateCommitMessage(diff string) (string, error) {
 	}
 
 	commitMessage := strings.TrimSpace(geminiResp.Candidates[0].Content.Parts[0].Text)
-	
 	commitMessage = strings.TrimPrefix(commitMessage, "```")
 	commitMessage = strings.TrimSuffix(commitMessage, "```")
-	commitMessage = strings.TrimSpace(commitMessage)
-
-	return commitMessage, nil
+	return strings.TrimSpace(commitMessage), nil
 }

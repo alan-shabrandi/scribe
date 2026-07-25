@@ -4,30 +4,38 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/alan-shabrandi/scribe/internal/config"
 	"github.com/alan-shabrandi/scribe/internal/git"
 	"github.com/alan-shabrandi/scribe/internal/llm"
 	"github.com/spf13/cobra"
 )
 
-var generatedCmd = &cobra.Command{
+var generateCmd = &cobra.Command{
 	Use:   "generate",
 	Short: "Generate a commit message from staged changes",
 	Long:  `Analyzes the current git diff and sends it to the LLM to construct a commit message.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		apiKey := os.Getenv("GEMINI_API_KEY")
-		if apiKey == "" {
-			fmt.Println("Error: GEMINI_API_KEY environment variable is not set.")
-			fmt.Println("Please set it using: export GEMINI_API_KEY='your-api-key'")
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			fmt.Printf("Configuration Error: %v\n", err)
 			os.Exit(1)
 		}
+
+		if cfg.APIKey == "" {
+			fmt.Println("Error: API key not set.")
+			fmt.Println("Please add it to ~/.scribe.yaml or set SCRIBE_API_KEY environment variable.")
+			os.Exit(1)
+		}
+
 		fmt.Println("Fetching staged git changes...")
 		diff, err := git.GetStagedDiff()
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Println("Generating commit message using Gemini API...")
-		client := llm.NewClient(apiKey)
+
+		fmt.Printf("Generating commit message using model '%s'...\n", cfg.Model)
+		client := llm.NewClient(cfg.APIKey, cfg.Model)
 		commitMessage, err := client.GenerateCommitMessage(diff)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
@@ -42,5 +50,5 @@ var generatedCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(generatedCmd)
+	rootCmd.AddCommand(generateCmd)
 }
