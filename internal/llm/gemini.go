@@ -102,3 +102,52 @@ func (c *Client) GenerateCommitMessage(diff, style string) (string, error) {
 	commitMessage = strings.TrimSuffix(commitMessage, "```")
 	return strings.TrimSpace(commitMessage), nil
 }
+
+func (c *Client) SummarizeFile(fileDiff string) (string, error) {
+	if c.APIKey == "" {
+		return "", fmt.Errorf("API Key is missing")
+	}
+
+	prompt := buildFileSummaryPrompt(fileDiff)
+
+	reqBody := GeminiRequest{
+		Contents: []Content{
+			{Parts: []Part{{Text: prompt}}},
+		},
+	}
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", err
+	}
+
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", c.Model, c.APIKey)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("Gemini API error %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var geminiResp GeminiResponse
+	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
+		return "", err
+	}
+
+	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("empty response from Gemini API")
+	}
+
+	return strings.TrimSpace(geminiResp.Candidates[0].Content.Parts[0].Text), nil
+}

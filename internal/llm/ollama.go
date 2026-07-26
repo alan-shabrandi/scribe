@@ -80,3 +80,46 @@ func (c *OllamaClient) GenerateCommitMessage(diff, style string) (string, error)
 	commitMessage = strings.TrimSuffix(commitMessage, "```")
 	return strings.TrimSpace(commitMessage), nil
 }
+
+func (c *OllamaClient) SummarizeFile(fileDiff string) (string, error) {
+	prompt := buildFileSummaryPrompt(fileDiff)
+
+	reqBody := ollamaRequest{
+		Model:  c.Model,
+		Prompt: prompt,
+		Stream: false,
+	}
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", c.BaseURL+"/api/generate", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to connect to Ollama (ensure Ollama is running locally): %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("ollama API returned status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var res ollamaResponse
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	summary := strings.TrimSpace(res.Response)
+	summary = strings.TrimPrefix(summary, "```")
+	summary = strings.TrimSuffix(summary, "```")
+
+	return strings.TrimSpace(summary), nil
+}

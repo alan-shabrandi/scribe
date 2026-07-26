@@ -58,3 +58,25 @@ func isIgnoredFile(header string) bool {
 	}
 	return false
 }
+
+func SplitDiffByFile(rawDiff string) []string {
+	rawChunks := strings.Split(rawDiff, "diff --git ")
+	var fileChunks []string
+
+	for _, chunk := range rawChunks {
+		if strings.TrimSpace(chunk) == "" {
+			continue
+		}
+
+		lines := strings.SplitN(chunk, "\n", 2)
+		header := lines[0]
+
+		if isIgnoredFile(header) {
+			continue
+		}
+
+		fileChunks = append(fileChunks, "diff --git "+chunk)
+	}
+
+	return fileChunks
+}
