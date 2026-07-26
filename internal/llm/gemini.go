@@ -151,3 +151,69 @@ func (c *Client) SummarizeFile(fileDiff string) (string, error) {
 
 	return strings.TrimSpace(geminiResp.Candidates[0].Content.Parts[0].Text), nil
 }
+
+func (c *Client) GenerateMultipleCommitMessages(diff, style, ticketID string) ([]string, error) {
+	if c.APIKey == "" {
+		return nil, fmt.Errorf("API Key is missing")
+	}
+
+	prompt := BuildMultiChoicePrompt(diff, style, ticketID)
+
+	reqBody := GeminiRequest{
+		Contents: []Content{
+			{Parts: []Part{{Text: prompt}}},
+		},
+	}
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, err
+	}
+
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", c.Model, c.APIKey)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("Gemini API error %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var geminiResp GeminiResponse
+	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
+		return nil, err
+	}
+
+	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+		return nil, fmt.Errorf("empty response from Gemini API")
+	}
+
+	rawText := strings.TrimSpace(geminiResp.Candidates[0].Content.Parts[0].Text)
+	lines := strings.Split(rawText, "\n")
+
+	var candidates []string
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		trimmed = strings.TrimPrefix(trimmed, "- ")
+		trimmed = strings.TrimPrefix(trimmed, "* ")
+		if trimmed != "" {
+			candidates = append(candidates, trimmed)
+		}
+	}
+
+	if len(candidates) == 0 {
+		return nil, fmt.Errorf("failed to parse candidate commit messages")
+	}
+
+	return candidates, nil
+}

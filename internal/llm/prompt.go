@@ -10,7 +10,7 @@ func BuildSystemPrompt(diff, style, ticketID string) string {
 		styleInstructions = `1. Write a clear, concise, and descriptive commit message in human-readable freeform style.
 2. Avoid strict prefixes like feat: or fix: unless natural.
 3. Keep the summary clear and under 72 characters.`
-	default: // conventional
+	default:
 		styleInstructions = `1. Follow the Conventional Commits format: <type>(<scope>): <short summary>
    - Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
    - Scope is optional, but encouraged if changes are isolated to a module/package.
@@ -51,7 +51,7 @@ func BuildSummaryBasedPrompt(summaries []string, style, ticketID string) string 
 		styleInstructions = `1. Write a clear, concise, and descriptive commit message in human-readable freeform style.
 2. Avoid strict prefixes like feat: or fix: unless natural.
 3. Keep the summary clear and under 72 characters.`
-	default: // conventional
+	default:
 		styleInstructions = `1. Follow the Conventional Commits format: <type>(<scope>): <short summary>
    - Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
    - Scope is optional, but encouraged if changes are isolated to a module/package.
@@ -80,4 +80,37 @@ STRICT RULES:
 
 Summarized File Changes:
 %s`, styleInstructions, ticketInstruction, combinedSummaries)
+}
+
+func BuildMultiChoicePrompt(diff, style, ticketID string) string {
+	var styleInstructions string
+
+	switch style {
+	case "freeform":
+		styleInstructions = `1. Write clear, concise, and descriptive commit messages in human-readable freeform style.
+2. Avoid strict prefixes like feat: or fix: unless natural.
+3. Keep each summary under 72 characters.`
+	default:
+		styleInstructions = `1. Follow Conventional Commits format: <type>(<scope>): <short summary>
+   - Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
+2. Keep each header line under 72 characters.`
+	}
+
+	ticketInstruction := ""
+	if ticketID != "" {
+		ticketInstruction = fmt.Sprintf("\n- Include Ticket ID [%s] in the scope or header of each candidate.", ticketID)
+	}
+
+	return fmt.Sprintf(`You are an automated Git commit message generator.
+Analyze the provided git diff and generate EXACTLY 3 distinct candidate commit messages (e.g., one concise, one detailed, one alternative perspective).
+
+STRICT RULES:
+%s%s
+- Output EXACTLY 3 lines.
+- Each line MUST contain one candidate commit message only.
+- Do NOT number the candidates (no "1.", "2.", etc.).
+- Do NOT include markdown code blocks or explanations.
+
+Git Diff:
+%s`, styleInstructions, ticketInstruction, diff)
 }

@@ -35,7 +35,6 @@ var generateCmd = &cobra.Command{
 
 		if cfg.APIKey == "" {
 			fmt.Printf("%s Error: API key not set.\n", red("❌"))
-			fmt.Println("Please add it to ~/.scribe.yaml or set SCRIBE_API_KEY environment variable.")
 			os.Exit(1)
 		}
 
@@ -51,10 +50,20 @@ var generateCmd = &cobra.Command{
 		ticketID := git.ExtractTicketID(branch)
 
 		if ticketID != "" {
-			fmt.Printf("%s Detected Context: Branch '%s' (Ticket: %s)\n", cyan("📌"), branch, green(ticketID))
+			fmt.Printf(
+				"%s Detected Context: Branch '%s' (Ticket: %s)\n",
+				cyan("📌"),
+				branch,
+				green(ticketID),
+			)
 		}
 
-		provider, err := llm.NewProvider(cfg.Provider, cfg.APIKey, cfg.Model)
+		provider, err := llm.NewProvider(
+			cfg.Provider,
+			cfg.APIKey,
+			cfg.Model,
+		)
+
 		if err != nil {
 			fmt.Printf("%s Config Error: %v\n", red("❌"), err)
 			os.Exit(1)
@@ -62,7 +71,7 @@ var generateCmd = &cobra.Command{
 
 		diffChunks := git.SplitDiffByFile(diff)
 
-		var finalCommitMessage string
+		var candidates []string
 
 		if len(diff) > LargeDiffThreshold && len(diffChunks) > 1 {
 
@@ -77,12 +86,17 @@ var generateCmd = &cobra.Command{
 
 			for i, chunk := range diffChunks {
 
-				s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+				s := spinner.New(
+					spinner.CharSets[14],
+					100*time.Millisecond,
+				)
+
 				s.Suffix = fmt.Sprintf(
 					" Summarizing file change %d/%d...",
 					i+1,
 					len(diffChunks),
 				)
+
 				s.Color("yellow", "bold")
 				s.Start()
 
@@ -92,7 +106,7 @@ var generateCmd = &cobra.Command{
 
 				if err != nil {
 					fmt.Printf(
-						"%s Warning: failed to summarize file chunk %d: %v\n",
+						"%s Warning: failed summarizing file %d: %v\n",
 						yellow("⚠️"),
 						i+1,
 						err,
@@ -100,66 +114,51 @@ var generateCmd = &cobra.Command{
 					continue
 				}
 
-				fileSummaries = append(fileSummaries, summary)
-			}
-
-			if len(fileSummaries) == 0 {
-				fmt.Printf(
-					"%s No file summaries generated. Falling back to standard generation...\n",
-					yellow("⚠️"),
-				)
-
-				s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-				s.Suffix = fmt.Sprintf(
-					" Generating commit message via provider '%s' [%s]...",
-					yellow(cfg.Provider),
-					yellow(cfg.Model),
-				)
-				s.Color("cyan", "bold")
-				s.Start()
-
-				finalCommitMessage, err = provider.GenerateCommitMessage(
-					diff,
-					cfg.Style,
-					ticketID,
-				)
-
-				s.Stop()
-
-			} else {
-
-				s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-				s.Suffix = " Synthesizing file summaries into final commit message..."
-				s.Color("cyan", "bold")
-				s.Start()
-
-				summaryPrompt := llm.BuildSummaryBasedPrompt(
+				fileSummaries = append(
 					fileSummaries,
-					cfg.Style,
-					ticketID,
+					summary,
 				)
-
-				finalCommitMessage, err = provider.GenerateCommitMessage(
-					summaryPrompt,
-					cfg.Style,
-					ticketID,
-				)
-
-				s.Stop()
 			}
 
-		} else {
-
-			s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-			s.Suffix = fmt.Sprintf(
-				" Generating commit message via provider '%s' [%s]...",
-				yellow(cfg.Provider),
-				yellow(cfg.Model),
+			summaryPrompt := llm.BuildSummaryBasedPrompt(
+				fileSummaries,
+				cfg.Style,
+				ticketID,
 			)
+
+			s := spinner.New(
+				spinner.CharSets[14],
+				100*time.Millisecond,
+			)
+
+			s.Suffix = " Generating commit message options..."
 			s.Color("cyan", "bold")
 			s.Start()
 
-			finalCommitMessage, err = provider.GenerateCommitMessage(
+			candidates, err = provider.GenerateMultipleCommitMessages(
+				summaryPrompt,
+				cfg.Style,
+				ticketID,
+			)
+
+			s.Stop()
+
+		} else {
+
+			s := spinner.New(
+				spinner.CharSets[14],
+				100*time.Millisecond,
+			)
+
+			s.Suffix = fmt.Sprintf(
+				" Generating candidate commit messages via '%s'...",
+				yellow(cfg.Provider),
+			)
+
+			s.Color("cyan", "bold")
+			s.Start()
+
+			candidates, err = provider.GenerateMultipleCommitMessages(
 				diff,
 				cfg.Style,
 				ticketID,
@@ -170,49 +169,62 @@ var generateCmd = &cobra.Command{
 
 		if err != nil {
 			fmt.Printf(
-				"%s Error generating message: %v\n",
+				"%s Error generating options: %v\n",
 				red("❌"),
 				err,
 			)
 			os.Exit(1)
 		}
 
-		fmt.Printf("\n%s Proposed Commit Message:\n", green("✨"))
-		fmt.Println(color.HiBlackString("--------------------------------------------------"))
-		fmt.Println(color.CyanString(finalCommitMessage))
-		fmt.Println(color.HiBlackString("--------------------------------------------------\n"))
-
-		const (
-			OptionAccept = "Accept & Commit"
-			OptionEdit   = "Edit message in system editor"
-			OptionCancel = "Cancel"
-		)
-
-		var selectedAction string
-
-		prompt := &survey.Select{
-			Message: "Would you like to use this commit message?",
-			Options: []string{
-				OptionAccept,
-				OptionEdit,
-				OptionCancel,
-			},
-			Default: OptionAccept,
+		if len(candidates) == 0 {
+			fmt.Printf(
+				"%s No commit message candidates generated.\n",
+				red("❌"),
+			)
+			os.Exit(1)
 		}
 
-		if err := survey.AskOne(prompt, &selectedAction); err != nil {
+		const (
+			OptionEditManual = "✏️  Edit custom message in system editor"
+			OptionCancel     = "🚫 Cancel"
+		)
+
+		selectOptions := append(
+			candidates,
+			OptionEditManual,
+			OptionCancel,
+		)
+
+		var selectedOption string
+
+		prompt := &survey.Select{
+			Message: "Select a commit message option:",
+			Options: selectOptions,
+			Default: selectOptions[0],
+		}
+
+		if err := survey.AskOne(prompt, &selectedOption); err != nil {
 			fmt.Printf("%s Interaction cancelled.\n", red("❌"))
 			os.Exit(1)
 		}
 
-		switch selectedAction {
+		switch selectedOption {
 
-		case OptionAccept:
-			commitAndFinish(finalCommitMessage)
+		case OptionCancel:
 
-		case OptionEdit:
+			fmt.Printf(
+				"%s Commit cancelled by user.\n",
+				yellow("🚫"),
+			)
 
-			editedMessage, err := git.OpenInEditor(finalCommitMessage)
+			os.Exit(0)
+
+		case OptionEditManual:
+
+			editedMessage, err := git.OpenInEditor(
+				candidates[0],
+			)
+
 			if err != nil {
 				fmt.Printf(
 					"%s Edit failed: %v\n",
@@ -224,13 +236,60 @@ var generateCmd = &cobra.Command{
 
 			commitAndFinish(editedMessage)
 
-		case OptionCancel:
+		default:
 
-			fmt.Printf(
-				"%s Commit cancelled by user.\n",
-				yellow("🚫"),
-			)
-			os.Exit(0)
+			var finalAction string
+
+			actionPrompt := &survey.Select{
+				Message: fmt.Sprintf(
+					"Selected: \"%s\"\nWhat would you like to do?",
+					green(selectedOption),
+				),
+				Options: []string{
+					"Accept & Commit",
+					"Edit in system editor",
+					"Cancel",
+				},
+				Default: "Accept & Commit",
+			}
+
+			if err := survey.AskOne(
+				actionPrompt,
+				&finalAction,
+			); err != nil {
+				os.Exit(1)
+			}
+
+			switch finalAction {
+
+			case "Accept & Commit":
+
+				commitAndFinish(selectedOption)
+
+			case "Edit in system editor":
+
+				editedMessage, err := git.OpenInEditor(
+					selectedOption,
+				)
+
+				if err != nil {
+					fmt.Printf(
+						"%s Edit failed: %v\n",
+						red("❌"),
+						err,
+					)
+					os.Exit(1)
+				}
+
+				commitAndFinish(editedMessage)
+
+			default:
+
+				fmt.Printf(
+					"%s Commit cancelled.\n",
+					yellow("🚫"),
+				)
+			}
 		}
 	},
 }
@@ -246,11 +305,13 @@ func commitAndFinish(msg string) {
 	)
 
 	if err := git.ExecuteCommit(msg); err != nil {
+
 		fmt.Printf(
 			"%s Failed to commit: %v\n",
 			red("❌"),
 			err,
 		)
+
 		os.Exit(1)
 	}
 
