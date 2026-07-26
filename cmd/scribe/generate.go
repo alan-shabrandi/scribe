@@ -47,6 +47,13 @@ var generateCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		branch, _ := git.GetCurrentBranch()
+		ticketID := git.ExtractTicketID(branch)
+
+		if ticketID != "" {
+			fmt.Printf("%s Detected Context: Branch '%s' (Ticket: %s)\n", cyan("📌"), branch, green(ticketID))
+		}
+
 		provider, err := llm.NewProvider(cfg.Provider, cfg.APIKey, cfg.Model)
 		if err != nil {
 			fmt.Printf("%s Config Error: %v\n", red("❌"), err)
@@ -114,6 +121,7 @@ var generateCmd = &cobra.Command{
 				finalCommitMessage, err = provider.GenerateCommitMessage(
 					diff,
 					cfg.Style,
+					ticketID,
 				)
 
 				s.Stop()
@@ -128,11 +136,13 @@ var generateCmd = &cobra.Command{
 				summaryPrompt := llm.BuildSummaryBasedPrompt(
 					fileSummaries,
 					cfg.Style,
+					ticketID,
 				)
 
 				finalCommitMessage, err = provider.GenerateCommitMessage(
 					summaryPrompt,
 					cfg.Style,
+					ticketID,
 				)
 
 				s.Stop()
@@ -152,6 +162,7 @@ var generateCmd = &cobra.Command{
 			finalCommitMessage, err = provider.GenerateCommitMessage(
 				diff,
 				cfg.Style,
+				ticketID,
 			)
 
 			s.Stop()

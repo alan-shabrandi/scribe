@@ -39,8 +39,8 @@ type ollamaResponse struct {
 	Response string `json:"response"`
 }
 
-func (c *OllamaClient) GenerateCommitMessage(diff, style string) (string, error) {
-	prompt := buildSystemPrompt(diff, style)
+func (c *OllamaClient) GenerateCommitMessage(diff, style, ticketID string) (string, error) {
+	prompt := BuildSystemPrompt(diff, style, ticketID)
 
 	reqBody := ollamaRequest{
 		Model:  c.Model,

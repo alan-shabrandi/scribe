@@ -1,8 +1,10 @@
 package git
 
 import (
+	"bytes"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -37,4 +39,22 @@ func ExecuteCommit(message string) error {
 	}
 
 	return nil
+}
+
+func GetCurrentBranch() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(out.String()), nil
+}
+
+func ExtractTicketID(branchName string) string {
+	re := regexp.MustCompile(`(?i)([a-z0-9]+-[0-9]+)`)
+	match := re.FindString(branchName)
+	return strings.ToUpper(match)
 }

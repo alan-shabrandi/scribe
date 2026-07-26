@@ -47,12 +47,12 @@ func NewGeminiClient(apiKey, model string) *Client {
 	}
 }
 
-func (c *Client) GenerateCommitMessage(diff, style string) (string, error) {
+func (c *Client) GenerateCommitMessage(diff, style, ticketID string) (string, error) {
 	if c.APIKey == "" {
 		return "", fmt.Errorf("API Key is missing. Please set it in ~/.scribe.yaml or SCRIBE_API_KEY environment variable")
 	}
 
-	prompt := buildSystemPrompt(diff, style)
+	prompt := BuildSystemPrompt(diff, style, ticketID)
 
 	reqBody := GeminiRequest{
 		Contents: []Content{

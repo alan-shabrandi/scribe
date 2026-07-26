@@ -2,7 +2,7 @@ package llm
 
 import "fmt"
 
-func buildSystemPrompt(diff, style string) string {
+func BuildSystemPrompt(diff, style, ticketID string) string {
 	var styleInstructions string
 
 	switch style {
@@ -17,18 +17,22 @@ func buildSystemPrompt(diff, style string) string {
 2. Keep the header line under 72 characters.`
 	}
 
+	ticketInstruction := ""
+	if ticketID != "" {
+		ticketInstruction = fmt.Sprintf("\n- IMPORTANT: Include the Ticket ID [%s] in the commit message header or scope (e.g. feat(%s): ... or fix: [%s] ...).", ticketID, ticketID, ticketID)
+	}
+
 	return fmt.Sprintf(`You are an automated Git commit message generator.
 Your job is to analyze the provided git diff and write a concise, professional commit message.
 
 STRICT RULES:
-%s
+%s%s
 - Write in the imperative mood, present tense (e.g., "add feature", NOT "added feature").
-- Do NOT include markdown code blocks (e.g., no triple backticks).
-- Do NOT include introductory words, explanations, or concluding remarks.
+- Do NOT include markdown code blocks.
 - Output raw text ONLY.
 
 Git Diff:
-%s`, styleInstructions, diff)
+%s`, styleInstructions, ticketInstruction, diff)
 }
 
 func buildFileSummaryPrompt(fileDiff string) string {
@@ -39,7 +43,7 @@ Git Diff for File:
 %s`, fileDiff)
 }
 
-func BuildSummaryBasedPrompt(summaries []string, style string) string {
+func BuildSummaryBasedPrompt(summaries []string, style, ticketID string) string {
 	var styleInstructions string
 
 	switch style {
@@ -52,6 +56,11 @@ func BuildSummaryBasedPrompt(summaries []string, style string) string {
    - Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
    - Scope is optional, but encouraged if changes are isolated to a module/package.
 2. Keep the header line under 72 characters.`
+	}
+
+	ticketInstruction := ""
+	if ticketID != "" {
+		ticketInstruction = fmt.Sprintf("\n- IMPORTANT: Include the Ticket ID [%s] in the commit message header or scope.", ticketID)
 	}
 
 	combinedSummaries := ""
@@ -64,11 +73,11 @@ Below are summaries of code changes made across multiple files in a repository.
 Synthesize these summaries into a single, cohesive, professional commit message.
 
 STRICT RULES:
-%s
+%s%s
 - Write in the imperative mood, present tense (e.g., "add feature", NOT "added feature").
 - Do NOT include markdown code blocks.
 - Output raw text ONLY.
 
 Summarized File Changes:
-%s`, styleInstructions, combinedSummaries)
+%s`, styleInstructions, ticketInstruction, combinedSummaries)
 }
