@@ -1,0 +1,83 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/fatih/color"
+	"github.com/spf13/cobra"
+)
+
+var hookCmd = &cobra.Command{
+	Use:   "hook",
+	Short: "Manage Git hooks integration for automatic commit generation",
+	Long:  `Install or uninstall Scribe as a Git prepare-commit-msg hook in your current repository.`,
+}
+
+var hookInstallCmd = &cobra.Command{
+	Use:   "install",
+	Short: "Install prepare-commit-msg hook in current Git repository",
+	Run: func(cmd *cobra.Command, args []string) {
+		green := color.New(color.FgGreen, color.Bold).SprintFunc()
+		red := color.New(color.FgRed, color.Bold).SprintFunc()
+
+		gitDir := filepath.Join(".git", "hooks")
+		if _, err := os.Stat(".git"); os.IsNotExist(err) {
+			fmt.Printf("%s Error: Not a git repository (or .git directory not found).\n", red("❌"))
+			os.Exit(1)
+		}
+
+		hookPath := filepath.Join(gitDir, "prepare-commit-msg")
+
+		hookContent := `#!/bin/sh
+# Scribe Git Hook
+# Automatically trigger scribe generate if commit message source is empty or message file
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+
+# Only auto-generate if user didn't provide a -m message or merge template
+if [ -z "$COMMIT_SOURCE" ] || [ "$COMMIT_SOURCE" = "message" ] || [ "$COMMIT_SOURCE" = "template" ]; then
+    scribe generate --hook-mode "$COMMIT_MSG_FILE"
+fi
+`
+
+		if err := os.WriteFile(hookPath, []byte(hookContent), 0755); err != nil {
+			fmt.Printf("%s Failed to install Git hook: %v\n", red("❌"), err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("%s Successfully installed Scribe prepare-commit-msg hook in %s!\n", green("🎉"), hookPath)
+		fmt.Println("Now running 'git commit' will automatically invoke Scribe.")
+	},
+}
+
+var hookUninstallCmd = &cobra.Command{
+	Use:   "uninstall",
+	Short: "Uninstall prepare-commit-msg hook from current Git repository",
+	Run: func(cmd *cobra.Command, args []string) {
+		green := color.New(color.FgGreen, color.Bold).SprintFunc()
+		red := color.New(color.FgRed, color.Bold).SprintFunc()
+
+		hookPath := filepath.Join(".git", "hooks", "prepare-commit-msg")
+
+		if _, err := os.Stat(hookPath); os.IsNotExist(err) {
+			fmt.Printf("%s Hook is not currently installed in this repository.\n", red("⚠️"))
+			return
+		}
+
+		if err := os.Remove(hookPath); err != nil {
+			fmt.Printf("%s Failed to remove Git hook: %v\n", red("❌"), err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("%s Successfully uninstalled Scribe prepare-commit-msg hook.\n", green("🗑️"))
+	},
+}
+
+func init() {
+	hookCmd.AddCommand(hookInstallCmd)
+	hookCmd.AddCommand(hookUninstallCmd)
+	rootCmd.AddCommand(hookCmd)
+}

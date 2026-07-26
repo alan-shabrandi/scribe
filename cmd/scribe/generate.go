@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/alan-shabrandi/scribe/internal/cache"
 	"github.com/alan-shabrandi/scribe/internal/config"
 	"github.com/alan-shabrandi/scribe/internal/git"
 	"github.com/alan-shabrandi/scribe/internal/llm"
@@ -15,6 +16,8 @@ import (
 )
 
 const LargeDiffThreshold = 6000
+
+var hookMsgFilePath string
 
 var generateCmd = &cobra.Command{
 	Use:   "generate",
@@ -33,7 +36,7 @@ var generateCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if cfg.APIKey == "" {
+		if cfg.APIKey == "" && cfg.Provider != "ollama" {
 			fmt.Printf("%s Error: API key not set.\n", red("❌"))
 			os.Exit(1)
 		}
@@ -44,6 +47,11 @@ var generateCmd = &cobra.Command{
 		if err != nil {
 			fmt.Printf("%s Error: %v\n", red("❌"), err)
 			os.Exit(1)
+		}
+
+		if len(diff) == 0 {
+			fmt.Printf("%s No staged changes detected. Use 'git add' first.\n", yellow("⚠️"))
+			os.Exit(0)
 		}
 
 		branch, _ := git.GetCurrentBranch()
@@ -58,33 +66,97 @@ var generateCmd = &cobra.Command{
 			)
 		}
 
-		provider, err := llm.NewProvider(
-			cfg.Provider,
-			cfg.APIKey,
-			cfg.Model,
-		)
-
-		if err != nil {
-			fmt.Printf("%s Config Error: %v\n", red("❌"), err)
-			os.Exit(1)
-		}
-
-		diffChunks := git.SplitDiffByFile(diff)
-
 		var candidates []string
+		var foundInCache bool
 
-		if len(diff) > LargeDiffThreshold && len(diffChunks) > 1 {
-
-			fmt.Printf(
-				"%s Large diff detected (%d chars across %d files). Activating multi-step chunk summarization...\n",
-				yellow("⚡"),
-				len(diff),
-				len(diffChunks),
+		candidates, foundInCache = cache.GetCachedCandidates(diff)
+		if foundInCache {
+			fmt.Printf("%s Found valid cached responses for unchanged diff!\n", green("⚡"))
+		} else {
+			provider, err := llm.NewProvider(
+				cfg.Provider,
+				cfg.APIKey,
+				cfg.Model,
 			)
 
-			var fileSummaries []string
+			if err != nil {
+				fmt.Printf("%s Config Error: %v\n", red("❌"), err)
+				os.Exit(1)
+			}
 
-			for i, chunk := range diffChunks {
+			diffChunks := git.SplitDiffByFile(diff)
+
+			if len(diff) > LargeDiffThreshold && len(diffChunks) > 1 {
+
+				fmt.Printf(
+					"%s Large diff detected (%d chars across %d files). Activating multi-step chunk summarization...\n",
+					yellow("⚡"),
+					len(diff),
+					len(diffChunks),
+				)
+
+				var fileSummaries []string
+
+				for i, chunk := range diffChunks {
+
+					s := spinner.New(
+						spinner.CharSets[14],
+						100*time.Millisecond,
+					)
+
+					s.Suffix = fmt.Sprintf(
+						" Summarizing file change %d/%d...",
+						i+1,
+						len(diffChunks),
+					)
+
+					s.Color("yellow", "bold")
+					s.Start()
+
+					summary, err := provider.SummarizeFile(chunk)
+
+					s.Stop()
+
+					if err != nil {
+						fmt.Printf(
+							"%s Warning: failed summarizing file %d: %v\n",
+							yellow("⚠️"),
+							i+1,
+							err,
+						)
+						continue
+					}
+
+					fileSummaries = append(
+						fileSummaries,
+						summary,
+					)
+				}
+
+				summaryPrompt := llm.BuildSummaryBasedPrompt(
+					fileSummaries,
+					cfg.Style,
+					ticketID,
+				)
+
+				s := spinner.New(
+					spinner.CharSets[14],
+					100*time.Millisecond,
+				)
+
+				s.Suffix = " Generating commit message options..."
+				s.Color("cyan", "bold")
+				s.Start()
+
+				candidates, err = provider.GenerateMultipleCommitMessages(
+					summaryPrompt,
+					cfg.Style,
+					ticketID,
+				)
+
+				s.Stop()
+
+			} else {
 
 				s := spinner.New(
 					spinner.CharSets[14],
@@ -92,88 +164,34 @@ var generateCmd = &cobra.Command{
 				)
 
 				s.Suffix = fmt.Sprintf(
-					" Summarizing file change %d/%d...",
-					i+1,
-					len(diffChunks),
+					" Generating candidate commit messages via '%s'...",
+					yellow(cfg.Provider),
 				)
 
-				s.Color("yellow", "bold")
+				s.Color("cyan", "bold")
 				s.Start()
 
-				summary, err := provider.SummarizeFile(chunk)
+				candidates, err = provider.GenerateMultipleCommitMessages(
+					diff,
+					cfg.Style,
+					ticketID,
+				)
 
 				s.Stop()
-
-				if err != nil {
-					fmt.Printf(
-						"%s Warning: failed summarizing file %d: %v\n",
-						yellow("⚠️"),
-						i+1,
-						err,
-					)
-					continue
-				}
-
-				fileSummaries = append(
-					fileSummaries,
-					summary,
-				)
 			}
 
-			summaryPrompt := llm.BuildSummaryBasedPrompt(
-				fileSummaries,
-				cfg.Style,
-				ticketID,
-			)
+			if err != nil {
+				fmt.Printf(
+					"%s Error generating options: %v\n",
+					red("❌"),
+					err,
+				)
+				os.Exit(1)
+			}
 
-			s := spinner.New(
-				spinner.CharSets[14],
-				100*time.Millisecond,
-			)
-
-			s.Suffix = " Generating commit message options..."
-			s.Color("cyan", "bold")
-			s.Start()
-
-			candidates, err = provider.GenerateMultipleCommitMessages(
-				summaryPrompt,
-				cfg.Style,
-				ticketID,
-			)
-
-			s.Stop()
-
-		} else {
-
-			s := spinner.New(
-				spinner.CharSets[14],
-				100*time.Millisecond,
-			)
-
-			s.Suffix = fmt.Sprintf(
-				" Generating candidate commit messages via '%s'...",
-				yellow(cfg.Provider),
-			)
-
-			s.Color("cyan", "bold")
-			s.Start()
-
-			candidates, err = provider.GenerateMultipleCommitMessages(
-				diff,
-				cfg.Style,
-				ticketID,
-			)
-
-			s.Stop()
-		}
-
-		if err != nil {
-			fmt.Printf(
-				"%s Error generating options: %v\n",
-				red("❌"),
-				err,
-			)
-			os.Exit(1)
+			if len(candidates) > 0 {
+				_ = cache.SaveCandidates(diff, candidates)
+			}
 		}
 
 		if len(candidates) == 0 {
@@ -295,32 +313,28 @@ var generateCmd = &cobra.Command{
 }
 
 func commitAndFinish(msg string) {
-
 	green := color.New(color.FgGreen, color.Bold).SprintFunc()
 	red := color.New(color.FgRed, color.Bold).SprintFunc()
 
-	fmt.Printf(
-		"%s Executing git commit...\n",
-		color.CyanString("🚀"),
-	)
+	if hookMsgFilePath != "" {
+		if err := os.WriteFile(hookMsgFilePath, []byte(msg), 0644); err != nil {
+			fmt.Printf("%s Failed to write message to Git hook file: %v\n", red("❌"), err)
+			os.Exit(1)
+		}
+		fmt.Printf("%s Message written to Git commit buffer!\n", green("📝"))
+		return
+	}
 
+	fmt.Printf("%s Executing git commit...\n", color.CyanString("🚀"))
 	if err := git.ExecuteCommit(msg); err != nil {
-
-		fmt.Printf(
-			"%s Failed to commit: %v\n",
-			red("❌"),
-			err,
-		)
-
+		fmt.Printf("%s Failed to commit: %v\n", red("❌"), err)
 		os.Exit(1)
 	}
 
-	fmt.Printf(
-		"%s Successfully committed staged changes!\n",
-		green("🎉"),
-	)
+	fmt.Printf("%s Successfully committed staged changes!\n", green("🎉"))
 }
 
 func init() {
+	generateCmd.Flags().StringVar(&hookMsgFilePath, "hook-mode", "", "Write generated message directly to Git hook msg file")
 	rootCmd.AddCommand(generateCmd)
 }
