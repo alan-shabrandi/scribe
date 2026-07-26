@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/viper"
 )
@@ -12,11 +11,14 @@ type Config struct {
 	Provider string `mapstructure:"provider"`
 	APIKey   string `mapstructure:"api_key"`
 	Model    string `mapstructure:"model"`
+	Style    string `mapstructure:"style"`
 }
 
 func LoadConfig() (*Config, error) {
 	viper.SetDefault("provider", "gemini")
 	viper.SetDefault("model", "gemini-1.5-flash")
+	viper.SetDefault("style", "conventional")
+
 	viper.SetEnvPrefix("SCRIBE")
 	viper.AutomaticEnv()
 
@@ -43,19 +45,4 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &cfg, nil
-}
-
-func CreateDefaultConfigFile(apiKey string) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	configPath := filepath.Join(homeDir, ".scribe.yaml")
-	if _, err := os.Stat(configPath); err == nil {
-		return fmt.Errorf("config file already exists at %s", configPath)
-	}
-
-	content := fmt.Sprintf("api_key: \"%s\"\nmodel: \"gemini-1.5-flash\"\n", apiKey)
-	return os.WriteFile(configPath, []byte(content), 0600)
 }

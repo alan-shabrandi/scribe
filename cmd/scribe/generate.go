@@ -44,7 +44,8 @@ var generateCmd = &cobra.Command{
 		}
 
 		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		s.Suffix = fmt.Sprintf(" Generating commit message via provider '%s' [%s]...", yellow(cfg.Provider), yellow(cfg.Model))
+		s.Suffix = fmt.Sprintf(" Generating commit message via provider '%s' [%s] (%s style)...",
+			yellow(cfg.Provider), yellow(cfg.Model), yellow(cfg.Style))
 		s.Color("cyan", "bold")
 		s.Start()
 
@@ -55,7 +56,7 @@ var generateCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		commitMessage, err := provider.GenerateCommitMessage(diff)
+		commitMessage, err := provider.GenerateCommitMessage(diff, cfg.Style)
 		s.Stop()
 
 		if err != nil {

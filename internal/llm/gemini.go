@@ -47,30 +47,12 @@ func NewGeminiClient(apiKey, model string) *Client {
 	}
 }
 
-func buildSystemPrompt(diff string) string {
-	return fmt.Sprintf(`You are an automated Git commit message generator.
-Your job is to analyze the provided git diff and write a concise, professional commit message.
-
-STRICT RULES:
-1. Follow the Conventional Commits format: <type>(<scope>): <short summary>
-   - Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
-   - Scope is optional, but encouraged if changes are isolated to a module/package.
-2. Keep the first line (header) under 72 characters.
-3. Write in the imperative mood, present tense (e.g., "add feature", NOT "added feature" or "adds feature").
-4. Do NOT include markdown code blocks (e.g., no triple `+"````"+`).
-5. Do NOT include introductory words, explanations, or concluding remarks (e.g., NO "Here is your commit message:").
-6. Output raw text ONLY.
-
-Git Diff:
-%s`, diff)
-}
-
-func (c *Client) GenerateCommitMessage(diff string) (string, error) {
+func (c *Client) GenerateCommitMessage(diff, style string) (string, error) {
 	if c.APIKey == "" {
 		return "", fmt.Errorf("API Key is missing. Please set it in ~/.scribe.yaml or SCRIBE_API_KEY environment variable")
 	}
 
-	prompt := buildSystemPrompt(diff)
+	prompt := buildSystemPrompt(diff, style)
 
 	reqBody := GeminiRequest{
 		Contents: []Content{

@@ -45,12 +45,12 @@ type openAIResponse struct {
 	} `json:"choices"`
 }
 
-func (c *OpenAIClient) GenerateCommitMessage(diff string) (string, error) {
+func (c *OpenAIClient) GenerateCommitMessage(diff, style string) (string, error) {
 	if c.APIKey == "" {
 		return "", fmt.Errorf("OpenAI API key is missing")
 	}
 
-	prompt := buildSystemPrompt(diff)
+	prompt := buildSystemPrompt(diff, style)
 
 	reqBody := openAIRequest{
 		Model: c.Model,

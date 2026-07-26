@@ -3,7 +3,7 @@ package llm
 import "fmt"
 
 type LLMProvider interface {
-	GenerateCommitMessage(diff string) (string, error)
+	GenerateCommitMessage(diff, style string) (string, error)
 }
 
 func NewProvider(providerType, apiKey, model string) (LLMProvider, error) {
