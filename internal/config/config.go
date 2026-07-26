@@ -9,11 +9,13 @@ import (
 )
 
 type Config struct {
-	APIKey string `mapstructure:"api_key"`
-	Model  string `mapstructure:"model"`
+	Provider string `mapstructure:"provider"`
+	APIKey   string `mapstructure:"api_key"`
+	Model    string `mapstructure:"model"`
 }
 
 func LoadConfig() (*Config, error) {
+	viper.SetDefault("provider", "gemini")
 	viper.SetDefault("model", "gemini-1.5-flash")
 	viper.SetEnvPrefix("SCRIBE")
 	viper.AutomaticEnv()

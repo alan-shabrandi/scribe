@@ -44,12 +44,18 @@ var generateCmd = &cobra.Command{
 		}
 
 		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		s.Suffix = fmt.Sprintf(" Generating commit message using model '%s'...", yellow(cfg.Model))
+		s.Suffix = fmt.Sprintf(" Generating commit message via provider '%s' [%s]...", yellow(cfg.Provider), yellow(cfg.Model))
 		s.Color("cyan", "bold")
 		s.Start()
 
-		client := llm.NewClient(cfg.APIKey, cfg.Model)
-		commitMessage, err := client.GenerateCommitMessage(diff)
+		provider, err := llm.NewProvider(cfg.Provider, cfg.APIKey, cfg.Model)
+		if err != nil {
+			s.Stop()
+			fmt.Printf("%s Config Error: %v\n", red("❌"), err)
+			os.Exit(1)
+		}
+
+		commitMessage, err := provider.GenerateCommitMessage(diff)
 		s.Stop()
 
 		if err != nil {

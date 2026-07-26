@@ -34,7 +34,7 @@ type Client struct {
 	HTTPClient *http.Client
 }
 
-func NewClient(apiKey, model string) *Client {
+func NewGeminiClient(apiKey, model string) *Client {
 	if model == "" {
 		model = "gemini-1.5-flash"
 	}
