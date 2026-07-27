@@ -23,11 +23,13 @@ func LoadConfig() (*Config, error) {
 	viper.AutomaticEnv()
 
 	homeDir, err := os.UserHomeDir()
-	if err == nil {
-		viper.AddConfigPath(homeDir)
-		viper.SetConfigName(".scribe")
-		viper.SetConfigType("yaml")
+	if err != nil {
+		return nil, fmt.Errorf("failed to locate home directory: %w", err)
 	}
+
+	viper.AddConfigPath(homeDir)
+	viper.SetConfigName(".scribe")
+	viper.SetConfigType("yaml")
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
@@ -41,8 +43,19 @@ func LoadConfig() (*Config, error) {
 	}
 
 	if cfg.APIKey == "" {
-		cfg.APIKey = os.Getenv("GEMINI_API_KEY")
+		cfg.APIKey = fallbackAPIKey(cfg.Provider)
 	}
 
 	return &cfg, nil
+}
+
+func fallbackAPIKey(provider string) string {
+	switch provider {
+	case "openai":
+		return os.Getenv("OPENAI_API_KEY")
+	case "gemini":
+		return os.Getenv("GEMINI_API_KEY")
+	default:
+		return ""
+	}
 }
