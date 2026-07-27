@@ -12,23 +12,32 @@ func OpenInEditor(initialContent string) (string, error) {
 	if editor == "" {
 		editor = os.Getenv("VISUAL")
 	}
+
 	if editor == "" {
-		editor = "vim"
+		editor = "code --wait"
 	}
 
 	tmpFile, err := os.CreateTemp("", "SCRIBE_EDIT_MSG_*.txt")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temporary file: %w", err)
 	}
-	defer os.Remove(tmpFile.Name())
+
+	tmpFilename := tmpFile.Name()
+
+	defer os.Remove(tmpFilename)
 
 	if _, err := tmpFile.WriteString(initialContent); err != nil {
 		tmpFile.Close()
 		return "", fmt.Errorf("failed to write to temporary file: %w", err)
 	}
+
 	tmpFile.Close()
 
-	cmd := exec.Command(editor, tmpFile.Name())
+	editorParts := strings.Fields(editor)
+	exe := editorParts[0]
+	args := append(editorParts[1:], tmpFilename)
+
+	cmd := exec.Command(exe, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -37,7 +46,7 @@ func OpenInEditor(initialContent string) (string, error) {
 		return "", fmt.Errorf("editor exited with error: %w", err)
 	}
 
-	updatedBytes, err := os.ReadFile(tmpFile.Name())
+	updatedBytes, err := os.ReadFile(tmpFilename)
 	if err != nil {
 		return "", fmt.Errorf("failed to read updated file: %w", err)
 	}

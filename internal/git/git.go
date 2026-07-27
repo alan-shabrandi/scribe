@@ -1,12 +1,13 @@
 package git
 
 import (
-	"bytes"
 	"fmt"
 	"os/exec"
 	"regexp"
 	"strings"
 )
+
+var ticketRegex = regexp.MustCompile(`(?i)([a-z0-9]+-[0-9]+)`)
 
 func GetStagedDiff() (string, error) {
 	cmd := exec.Command("git", "diff", "--staged")
@@ -35,7 +36,7 @@ func ExecuteCommit(message string) error {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("git commit failed: %s", string(output))
+		return fmt.Errorf("git commit failed: %w\noutput: %s", err, strings.TrimSpace(string(output)))
 	}
 
 	return nil
@@ -43,18 +44,16 @@ func ExecuteCommit(message string) error {
 
 func GetCurrentBranch() (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-	var out bytes.Buffer
-	cmd.Stdout = &out
 
-	if err := cmd.Run(); err != nil {
-		return "", err
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current branch: %w", err)
 	}
 
-	return strings.TrimSpace(out.String()), nil
+	return strings.TrimSpace(string(output)), nil
 }
 
 func ExtractTicketID(branchName string) string {
-	re := regexp.MustCompile(`(?i)([a-z0-9]+-[0-9]+)`)
-	match := re.FindString(branchName)
+	match := ticketRegex.FindString(branchName)
 	return strings.ToUpper(match)
 }
