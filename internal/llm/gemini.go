@@ -1,14 +1,13 @@
 package llm
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
-	"io"
 	"net/http"
-	"strings"
 	"time"
 )
+
+const geminiBaseURLTemplate = "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s"
 
 type Content struct {
 	Parts []Part `json:"parts"`
@@ -21,6 +20,7 @@ type Part struct {
 type GeminiRequest struct {
 	Contents []Content `json:"contents"`
 }
+
 type Candidate struct {
 	Content Content `json:"content"`
 }
@@ -28,17 +28,17 @@ type Candidate struct {
 type GeminiResponse struct {
 	Candidates []Candidate `json:"candidates"`
 }
-type Client struct {
+type GeminiClient struct {
 	APIKey     string
 	Model      string
 	HTTPClient *http.Client
 }
 
-func NewGeminiClient(apiKey, model string) *Client {
+func NewGeminiClient(apiKey, model string) *GeminiClient {
 	if model == "" {
 		model = "gemini-1.5-flash"
 	}
-	return &Client{
+	return &GeminiClient{
 		APIKey: apiKey,
 		Model:  model,
 		HTTPClient: &http.Client{
@@ -47,173 +47,84 @@ func NewGeminiClient(apiKey, model string) *Client {
 	}
 }
 
-func (c *Client) GenerateCommitMessage(diff, style, ticketID string) (string, error) {
+func (c *GeminiClient) headers() map[string]string {
+	return map[string]string{
+		"Content-Type": "application/json",
+	}
+}
+
+func (c *GeminiClient) url() string {
+	return fmt.Sprintf(geminiBaseURLTemplate, c.Model, c.APIKey)
+}
+
+func (c *GeminiClient) GenerateCommitMessage(ctx context.Context, diff, style, ticketID string) (string, error) {
 	if c.APIKey == "" {
 		return "", fmt.Errorf("API Key is missing. Please set it in ~/.scribe.yaml or SCRIBE_API_KEY environment variable")
 	}
 
 	prompt := BuildSystemPrompt(diff, style, ticketID)
-
 	reqBody := GeminiRequest{
 		Contents: []Content{
-			{
-				Parts: []Part{
-					{Text: prompt},
-				},
-			},
+			{Parts: []Part{{Text: prompt}}},
 		},
 	}
 
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal request body: %w", err)
+	var res GeminiResponse
+	if err := sendJSONRequest(ctx, c.HTTPClient, "POST", c.url(), c.headers(), reqBody, &res); err != nil {
+		return "", fmt.Errorf("failed to call Gemini API: %w", err)
 	}
 
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s)", c.Model, c.APIKey)
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", fmt.Errorf("failed to create http request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("failed to send request to Gemini API: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("Gemini API returned status %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
-	var geminiResp GeminiResponse
-	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+	if len(res.Candidates) == 0 || len(res.Candidates[0].Content.Parts) == 0 {
 		return "", fmt.Errorf("received empty response from Gemini API")
 	}
 
-	commitMessage := strings.TrimSpace(geminiResp.Candidates[0].Content.Parts[0].Text)
-	commitMessage = strings.TrimPrefix(commitMessage, "```")
-	commitMessage = strings.TrimSuffix(commitMessage, "```")
-	return strings.TrimSpace(commitMessage), nil
+	return cleanResponseText(res.Candidates[0].Content.Parts[0].Text), nil
 }
 
-func (c *Client) SummarizeFile(fileDiff string) (string, error) {
+func (c *GeminiClient) SummarizeFile(ctx context.Context, fileDiff string) (string, error) {
 	if c.APIKey == "" {
 		return "", fmt.Errorf("API Key is missing")
 	}
 
 	prompt := buildFileSummaryPrompt(fileDiff)
-
 	reqBody := GeminiRequest{
 		Contents: []Content{
 			{Parts: []Part{{Text: prompt}}},
 		},
 	}
 
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return "", err
+	var res GeminiResponse
+	if err := sendJSONRequest(ctx, c.HTTPClient, "POST", c.url(), c.headers(), reqBody, &res); err != nil {
+		return "", fmt.Errorf("failed to call Gemini API: %w", err)
 	}
 
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", c.Model, c.APIKey)
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("Gemini API error %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
-	var geminiResp GeminiResponse
-	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
-		return "", err
-	}
-
-	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+	if len(res.Candidates) == 0 || len(res.Candidates[0].Content.Parts) == 0 {
 		return "", fmt.Errorf("empty response from Gemini API")
 	}
 
-	return strings.TrimSpace(geminiResp.Candidates[0].Content.Parts[0].Text), nil
+	return cleanResponseText(res.Candidates[0].Content.Parts[0].Text), nil
 }
 
-func (c *Client) GenerateMultipleCommitMessages(diff, style, ticketID string) ([]string, error) {
+func (c *GeminiClient) GenerateMultipleCommitMessages(ctx context.Context, diff, style, ticketID string) ([]string, error) {
 	if c.APIKey == "" {
 		return nil, fmt.Errorf("API Key is missing")
 	}
 
 	prompt := BuildMultiChoicePrompt(diff, style, ticketID)
-
 	reqBody := GeminiRequest{
 		Contents: []Content{
 			{Parts: []Part{{Text: prompt}}},
 		},
 	}
 
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return nil, err
+	var res GeminiResponse
+	if err := sendJSONRequest(ctx, c.HTTPClient, "POST", c.url(), c.headers(), reqBody, &res); err != nil {
+		return nil, fmt.Errorf("failed to call Gemini API: %w", err)
 	}
 
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", c.Model, c.APIKey)
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Gemini API error %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
-	var geminiResp GeminiResponse
-	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
-		return nil, err
-	}
-
-	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+	if len(res.Candidates) == 0 || len(res.Candidates[0].Content.Parts) == 0 {
 		return nil, fmt.Errorf("empty response from Gemini API")
 	}
 
-	rawText := strings.TrimSpace(geminiResp.Candidates[0].Content.Parts[0].Text)
-	lines := strings.Split(rawText, "\n")
-
-	var candidates []string
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		trimmed = strings.TrimPrefix(trimmed, "- ")
-		trimmed = strings.TrimPrefix(trimmed, "* ")
-		if trimmed != "" {
-			candidates = append(candidates, trimmed)
-		}
-	}
-
-	if len(candidates) == 0 {
-		return nil, fmt.Errorf("failed to parse candidate commit messages")
-	}
-
-	return candidates, nil
+	return parseCandidates(res.Candidates[0].Content.Parts[0].Text)
 }
