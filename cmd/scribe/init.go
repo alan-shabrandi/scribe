@@ -12,6 +12,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const configFileName = ".scribe.yaml"
+
 type ConfigFile struct {
 	Provider string `yaml:"provider"`
 	APIKey   string `yaml:"api_key,omitempty"`
@@ -19,99 +21,125 @@ type ConfigFile struct {
 	Style    string `yaml:"style"`
 }
 
+var (
+	initGreen = color.New(color.FgGreen, color.Bold).SprintFunc()
+	initRed   = color.New(color.FgRed, color.Bold).SprintFunc()
+	initCyan  = color.New(color.FgCyan, color.Bold).SprintFunc()
+)
+
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize configuration for scribe CLI",
 	Long:  `Interactively guides you through setting up your LLM provider, API keys, default models, and commit message style in ~/.scribe.yaml.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		green := color.New(color.FgGreen, color.Bold).SprintFunc()
-		red := color.New(color.FgRed, color.Bold).SprintFunc()
-		cyan := color.New(color.FgCyan, color.Bold).SprintFunc()
-
-		fmt.Printf("%s Welcome to Scribe Initialization!\n\n", cyan("🚀"))
-
-		var provider string
-		providerPrompt := &survey.Select{
-			Message: "Choose your LLM Provider:",
-			Options: []string{"gemini", "openai", "ollama"},
-			Default: "gemini",
-		}
-		if err := survey.AskOne(providerPrompt, &provider); err != nil {
-			fmt.Printf("%s Initialization cancelled.\n", red("❌"))
-			os.Exit(1)
-		}
-
-		var defaultModel string
-		switch provider {
-		case "gemini":
-			defaultModel = "gemini-1.5-flash"
-		case "openai":
-			defaultModel = "gpt-4o-mini"
-		case "ollama":
-			defaultModel = "llama3"
-		}
-
-		var model string
-		modelPrompt := &survey.Input{
-			Message: "Enter default model name:",
-			Default: defaultModel,
-		}
-		if err := survey.AskOne(modelPrompt, &model); err != nil {
-			os.Exit(1)
-		}
-
-		var apiKey string
-		if provider != "ollama" {
-			apiKeyPrompt := &survey.Password{
-				Message: fmt.Sprintf("Enter your API Key for %s:", strings.Title(provider)),
-			}
-			if err := survey.AskOne(apiKeyPrompt, &apiKey); err != nil {
-				os.Exit(1)
-			}
-		}
-
-		var style string
-		stylePrompt := &survey.Select{
-			Message: "Choose default commit message style:",
-			Options: []string{"conventional", "freeform"},
-			Default: "conventional",
-			Help:    "conventional: feat(scope): message | freeform: descriptive plain text",
-		}
-		if err := survey.AskOne(stylePrompt, &style); err != nil {
-			os.Exit(1)
-		}
-
-		cfg := ConfigFile{
-			Provider: provider,
-			APIKey:   apiKey,
-			Model:    model,
-			Style:    style,
-		}
-
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			fmt.Printf("%s Error locating home directory: %v\n", red("❌"), err)
-			os.Exit(1)
-		}
-
-		configPath := filepath.Join(homeDir, ".scribe.yaml")
-
-		yamlData, err := yaml.Marshal(&cfg)
-		if err != nil {
-			fmt.Printf("%s Error generating YAML config: %v\n", red("❌"), err)
-			os.Exit(1)
-		}
-
-		if err := os.WriteFile(configPath, yamlData, 0600); err != nil {
-			fmt.Printf("%s Error writing config file to %s: %v\n", red("❌"), configPath, err)
-			os.Exit(1)
-		}
-
-		fmt.Printf("\n%s Configuration successfully saved to %s!\n", green("🎉"), configPath)
-		fmt.Println("You can now run 'scribe generate' or 'scribe' from any Git repository.")
-	},
+	Run:   runInit,
 }
 
 func init() {
 	rootCmd.AddCommand(initCmd)
+}
+
+func runInit(cmd *cobra.Command, args []string) {
+	fmt.Printf("%s Welcome to Scribe Initialization!\n\n", initCyan("🚀"))
+
+	cfg, err := gatherUserConfig()
+	if err != nil {
+		fmt.Printf("\n%s Initialization cancelled or failed: %v\n", initRed("❌"), err)
+		os.Exit(1)
+	}
+
+	configPath, err := saveConfig(cfg)
+	if err != nil {
+		fmt.Printf("\n%s Error saving config: %v\n", initRed("❌"), err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("\n%s Configuration successfully saved to %s!\n", initGreen("🎉"), configPath)
+	fmt.Println("You can now run 'scribe generate' or 'scribe' from any Git repository.")
+}
+
+func gatherUserConfig() (*ConfigFile, error) {
+	var provider string
+	if err := survey.AskOne(&survey.Select{
+		Message: "Choose your LLM Provider:",
+		Options: []string{"gemini", "openai", "ollama"},
+		Default: "gemini",
+	}, &provider); err != nil {
+		return nil, err
+	}
+
+	defaultModel := getDefaultModel(provider)
+
+	var model string
+	if err := survey.AskOne(&survey.Input{
+		Message: "Enter default model name:",
+		Default: defaultModel,
+	}, &model); err != nil {
+		return nil, err
+	}
+
+	var apiKey string
+	if provider != "ollama" {
+		if err := survey.AskOne(&survey.Password{
+			Message: fmt.Sprintf("Enter your API Key for %s:", capitalizeFirst(provider)),
+		}, &apiKey); err != nil {
+			return nil, err
+		}
+	}
+
+	var style string
+	if err := survey.AskOne(&survey.Select{
+		Message: "Choose default commit message style:",
+		Options: []string{"conventional", "freeform"},
+		Default: "conventional",
+		Help:    "conventional: feat(scope): message | freeform: descriptive plain text",
+	}, &style); err != nil {
+		return nil, err
+	}
+
+	return &ConfigFile{
+		Provider: provider,
+		APIKey:   apiKey,
+		Model:    model,
+		Style:    style,
+	}, nil
+}
+
+func saveConfig(cfg *ConfigFile) (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("locating home directory: %w", err)
+	}
+
+	configPath := filepath.Join(homeDir, configFileName)
+
+	yamlData, err := yaml.Marshal(cfg)
+	if err != nil {
+		return "", fmt.Errorf("generating YAML config: %w", err)
+	}
+
+	if err := os.WriteFile(configPath, yamlData, 0600); err != nil {
+		return "", fmt.Errorf("writing config file to %s: %w", configPath, err)
+	}
+
+	return configPath, nil
+}
+
+func getDefaultModel(provider string) string {
+	switch provider {
+	case "gemini":
+		return "gemini-1.5-flash"
+	case "openai":
+		return "gpt-4o-mini"
+	case "ollama":
+		return "llama3"
+	default:
+		return ""
+	}
+}
+
+func capitalizeFirst(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + strings.ToLower(s[1:])
 }
