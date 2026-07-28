@@ -364,7 +364,7 @@ If you find Scribe useful, consider giving the project a ⭐ on GitHub.
 <p align="center">
   <br>
   <a href="https://github.com/alan-shabrandi/scribe">
-    <img src="https://img.shields.io/badge/Give_a_⭐_on_GitHub-yellow?style=for-the-badge&logo=github" alt="Star on GitHub" />
+    <img src="https://img.shields.io/badge/Give_a_⭐_on_GitHub-238636?style=for-the-badge&logo=github" alt="Star on GitHub" />
   </a>
 </p>
 
