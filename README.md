@@ -15,15 +15,16 @@ Generate meaningful Git commit messages instantly from your staged changes using
 
 ## 📚 Table of Contents
 
-- Features
-- Quick Start
-- Installation
-- Configuration
-- Usage
-- Git Hook Integration
-- Performance & Caching
-- Project Structure
-- License
+- [✨ Features](#-features)
+- [📦 Installation](#-installation)
+- [🚀 Quick Start](#-quick-start)
+- [⚙️ Configuration](#️-configuration)
+- [📖 Usage](#-usage)
+- [🔗 Git Hook Integration](#-git-hook-integration)
+- [⚡ Performance & Caching](#-performance--caching)
+- [🛠️ Project Structure](#️-project-structure)
+- [⭐ Support](#-support)
+- [📄 License](#-license)
 
 ---
 
@@ -36,31 +37,44 @@ Generate meaningful Git commit messages instantly from your staged changes using
 - 🧩 **Large Diff Handling:** Chunking and summarization for large changes.
 - 🔗 **Git Hook Support:** Works as both a CLI and `prepare-commit-msg` hook.
 
----
+### 💡 At a Glance
 
-## 🚀 Quick Start
-
-```bash
-brew install alan-shabrandi/tap/scribe
-
-scribe config set provider openai
-scribe config set api_key YOUR_API_KEY
-
-git add .
-scribe generate
-```
+| Capability         | Details                                            |
+| ------------------ | -------------------------------------------------- |
+| 🤖 AI Providers    | OpenAI, Claude, Gemini, Ollama                     |
+| ⚡ Performance     | SHA-256 caching for identical staged diffs         |
+| 🏷️ Context         | Automatically detects ticket IDs from branch names |
+| 🧩 Large Changes   | Chunking and summarization for large diffs         |
+| 🪝 Git Integration | CLI and `prepare-commit-msg` hook support          |
 
 ---
 
 ## 📦 Installation
 
-### Homebrew (macOS / Linux)
+### Option 1: Pre-compiled Binaries (Recommended)
+
+Download the latest pre-compiled binaries for Windows, macOS, and Linux from the [Releases page](https://github.com/alan-shabrandi/scribe/releases/latest).
+
+For macOS / Linux:
 
 ```bash
-brew install alan-shabrandi/tap/scribe
+tar -xzf scribe_*_linux_amd64.tar.gz
+sudo mv scribe /usr/local/bin/
 ```
 
-### Build from Source
+For Windows:
+
+Extract the `.zip` file and add the folder containing `scribe.exe` to your system's Environment Variables (`PATH`).
+
+### Option 2: Using Go Install (For Go Developers)
+
+If you have Go 1.21+ installed, this is the easiest way:
+
+```bash
+go install https://github.com/alan-shabrandi/scribe/cmd/scribe@latest
+```
+
+### Option 3: Build from Source
 
 #### Prerequisites
 
@@ -71,25 +85,44 @@ brew install alan-shabrandi/tap/scribe
 git clone https://github.com/alan-shabrandi/scribe.git
 cd scribe
 go build -o scribe ./cmd/scribe
-sudo mv scribe /usr/local/bin/
 ```
+
+---
+
+## 🚀 Quick Start
+
+Once Scribe is installed, configure your provider and generate your first commit message:
+
+```bash
+scribe config set provider openai
+scribe config set api_key YOUR_API_KEY
+
+git add .
+scribe generate
+```
+
+That's it — Scribe analyzes your staged changes and generates clean commit message candidates for you to choose from.
+
+> **Need more configuration options?** See the [Configuration](#️-configuration) section below.
 
 ---
 
 ## ⚙️ Configuration
 
-Configuration file:
+Scribe stores its configuration in:
 
 ```text
 ~/.scribe.yaml
 ```
 
-| Setting  | Example      |
-| -------- | ------------ |
-| provider | openai       |
-| model    | gpt-4o       |
-| style    | conventional |
-| api_key  | your-api-key |
+| Setting    | Description                                   | Example        |
+| ---------- | --------------------------------------------- | -------------- |
+| `provider` | LLM provider used to generate commit messages | `openai`       |
+| `model`    | Model used by the selected provider           | `gpt-4o`       |
+| `style`    | Commit message style                          | `conventional` |
+| `api_key`  | API key for the selected provider             | `your-api-key` |
+
+Configure Scribe using:
 
 ```bash
 scribe config set provider openai
@@ -100,21 +133,23 @@ scribe config set style "conventional"
 
 ---
 
-## 🚀 Usage
+## 📖 Usage
 
-1. Stage your changes
+### 1. Stage Your Changes
 
 ```bash
 git add .
 ```
 
-2. Generate commit messages
+### 2. Generate Commit Messages
 
 ```bash
 scribe generate
 ```
 
-Example:
+### 3. Choose a Commit Message
+
+Scribe analyzes your staged changes and presents multiple candidates:
 
 ```text
 🔍 Fetching staged git changes...
@@ -133,20 +168,33 @@ Example:
 
 ## 🔗 Git Hook Integration
 
+Use Scribe directly from your Git workflow by installing the `prepare-commit-msg` hook:
+
 ```bash
 scribe hook install
+```
+
+To remove the hook:
+
+```bash
 scribe hook uninstall
 ```
+
+This lets Scribe integrate into your commit workflow without requiring you to manually run the generation command every time.
 
 ---
 
 ## ⚡ Performance & Caching
+
+Scribe uses SHA-256 caching to avoid repeated LLM requests for identical staged diffs.
 
 Cached responses are stored in:
 
 ```text
 ~/.scribe_cache.json
 ```
+
+This helps reduce unnecessary LLM calls and makes repeated commit message generation faster.
 
 ---
 
@@ -167,10 +215,14 @@ scribe/
 
 ---
 
+## ⭐ Support
+
+If you find Scribe useful, consider giving the repository a ⭐ on GitHub.
+
+---
+
 ## 📄 License
 
 Licensed under the MIT License.
 
 See `LICENSE` for details.
-
-If you find Scribe useful, consider giving the repository a ⭐.
