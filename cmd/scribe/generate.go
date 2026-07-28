@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -154,7 +155,24 @@ func handleUserSelection(candidates []string) {
 		Default: selectOptions[0],
 	}
 
-	if err := survey.AskOne(prompt, &selectedOption); err != nil {
+	var tty *os.File
+	var err error
+	if runtime.GOOS == "windows" {
+		tty, err = os.Open("CONIN$")
+	} else {
+		tty, err = os.Open("/dev/tty")
+	}
+
+	var stdioOpt survey.AskOpt
+	if err == nil {
+		defer tty.Close()
+		stdioOpt = survey.WithStdio(tty, os.Stdout, os.Stderr)
+	} else {
+		stdioOpt = survey.WithStdio(os.Stdin, os.Stdout, os.Stderr)
+	}
+	// -----------------------------------------------
+
+	if err := survey.AskOne(prompt, &selectedOption, stdioOpt); err != nil {
 		fmt.Printf("%s Interaction cancelled.\n", red("❌"))
 		os.Exit(1)
 	}
@@ -180,7 +198,7 @@ func handleUserSelection(candidates []string) {
 			Default: "Accept & Commit",
 		}
 
-		if err := survey.AskOne(actionPrompt, &finalAction); err != nil {
+		if err := survey.AskOne(actionPrompt, &finalAction, stdioOpt); err != nil {
 			os.Exit(1)
 		}
 

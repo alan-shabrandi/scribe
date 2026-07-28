@@ -23,6 +23,14 @@ COMMIT_SOURCE=$2
 
 # Only auto-generate if user didn't provide a -m message or merge template
 if [ -z "$COMMIT_SOURCE" ] || [ "$COMMIT_SOURCE" = "message" ] || [ "$COMMIT_SOURCE" = "template" ]; then
+    if [ ! -t 0 ]; then
+        if ( : < /dev/tty ) 2>/dev/null; then
+            exec < /dev/tty
+        else
+            exit 0
+        fi
+    fi
+
     scribe generate --hook-mode "$COMMIT_MSG_FILE"
 fi
 `
