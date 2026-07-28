@@ -3,7 +3,7 @@ $exePath = Join-Path $scriptDir "scribe.exe"
 $targetDir = "$env:LOCALAPPDATA\Programs\Scribe"
 
 if (!(Test-Path $exePath)) {
-    Write-Host "❌ Error: 'scribe.exe' not found in the current directory!" -ForegroundColor Red
+    Write-Host "Error: 'scribe.exe' not found in the current directory!" -ForegroundColor Red
     exit 1
 }
 
@@ -17,8 +17,8 @@ $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
 if ($userPath -notlike "*$targetDir*") {
     $newPath = "$userPath;$targetDir"
     [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
-    Write-Host "✔ Added Scribe to User PATH." -ForegroundColor Cyan
+    Write-Host "Added Scribe to User PATH." -ForegroundColor Cyan
 }
 
-Write-Host "🎉 Scribe installed successfully!" -ForegroundColor Green
-Write-Host "Please restart your terminal and run 'scribe' from anywhere." -ForegroundColor Yellow
+Write-Host "Scribe installed successfully!" -ForegroundColor Green
+Write-Host "Please restart your terminal and run scribe from anywhere." -ForegroundColor Yellow
