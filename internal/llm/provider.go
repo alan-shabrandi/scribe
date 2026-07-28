@@ -20,9 +20,11 @@ func NewProvider(providerType, apiKey, model string) (Provider, error) {
 		return NewGeminiClient(apiKey, model), nil
 	case "openai":
 		return NewOpenAIClient(apiKey, model), nil
+	case "claude", "anthropic":
+		return NewClaudeClient(apiKey, model), nil
 	case "ollama":
 		return NewOllamaClient(model), nil
 	default:
-		return nil, fmt.Errorf("unsupported LLM provider '%s' (supported providers: gemini, openai, ollama)", providerType)
+		return nil, fmt.Errorf("unsupported LLM provider '%s' (supported providers: gemini, openai, claude, ollama)", providerType)
 	}
 }
