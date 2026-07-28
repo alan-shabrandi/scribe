@@ -8,8 +8,22 @@ Generate meaningful Git commit messages instantly from your staged changes using
   <img src="docs/demo.gif" alt="Scribe Demo" width="850">
 </p>
 
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](https://go.dev/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<p align="left">
+  <!-- Go Version -->
+  <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat-square&logo=go" alt="Go Version"></a>
+  <!-- Latest Release -->
+  <a href="https://github.com/alan-shabrandi/scribe/releases/latest"><img src="https://img.shields.io/github/v/release/alan-shabrandi/scribe?style=flat-square&color=blue" alt="Latest Release"></a>
+  <!-- CI / Build Status -->
+  <a href="https://github.com/alan-shabrandi/scribe/actions"><img src="https://img.shields.io/github/actions/workflow/status/alan-shabrandi/scribe/ci.yml?branch=main&style=flat-square&label=build" alt="Build Status"></a>
+  <!-- License -->
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg?style=flat-square" alt="License"></a>
+  <!-- Open Issues -->
+  <a href="https://github.com/alan-shabrandi/scribe/issues"><img src="https://img.shields.io/github/issues/alan-shabrandi/scribe?style=flat-square&color=orange" alt="Issues"></a>
+  <!-- PRs Welcome -->
+  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square" alt="PRs Welcome"></a>
+  <!-- GitHub Stars -->
+  <a href="https://github.com/alan-shabrandi/scribe/stargazers"><img src="https://img.shields.io/github/stars/alan-shabrandi/scribe?style=flat-square" alt="Stars"></a>
+</p>
 
 ---
 
@@ -71,7 +85,7 @@ Extract the `.zip` file and add the folder containing `scribe.exe` to your syste
 If you have Go 1.21+ installed, this is the easiest way:
 
 ```bash
-go install https://github.com/alan-shabrandi/scribe/cmd/scribe@latest
+go install github.com/alan-shabrandi/scribe/cmd/scribe@latest
 ```
 
 ### Option 3: Build from Source
@@ -219,9 +233,21 @@ scribe/
 
 ---
 
-## ⭐ Support
+---
 
-If you find Scribe useful, consider giving the repository a ⭐ on GitHub.
+## 💖 Support & Contributing
+
+If Scribe saves you time and makes your commits cleaner, please consider giving it a ⭐!
+
+- 🐛 **Found a bug?** Open an issue on [GitHub Issues](https://github.com/alan-shabrandi/scribe/issues).
+- 💡 **Have an idea or fix?** Contributions are always welcome! Check out our [CONTRIBUTING.md](CONTRIBUTING.md).
+
+<p align="center">
+  <br>
+  <a href="https://github.com/alan-shabrandi/scribe">
+    <img src="https://img.shields.io/badge/Give_a_⭐_on_GitHub-yellow?style=for-the-badge&logo=github" alt="Star on GitHub" />
+  </a>
+</p>
 
 ---
 
