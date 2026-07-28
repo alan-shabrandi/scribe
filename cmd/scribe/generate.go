@@ -277,7 +277,7 @@ func commitAndFinish(msg string) {
 			os.Exit(1)
 		}
 		fmt.Printf("%s Message written to Git commit buffer!\n", green("📝"))
-		return
+		os.Exit(0)
 	}
 
 	fmt.Printf("%s Executing git commit...\n", cyan("🚀"))

@@ -31,7 +31,14 @@ if [ -z "$COMMIT_SOURCE" ] || [ "$COMMIT_SOURCE" = "message" ] || [ "$COMMIT_SOU
         fi
     fi
 
+    # اجرای Scribe
     scribe generate --hook-mode "$COMMIT_MSG_FILE"
+    
+    if [ $? -eq 0 ]; then
+        export GIT_EDITOR=true
+    else
+        exit 1
+    fi
 fi
 `
 
