@@ -28,9 +28,10 @@ archives:
         format: zip
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
-      - README.md
-      - LICENSE*
-      - install.ps1
+      - src: "README.md"
+      - src: "LICENSE*"
+      - src: "install.ps1"
+        strip_parent: true
 
 checksum:
   name_template: "checksums.txt"

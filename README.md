@@ -78,7 +78,13 @@ sudo mv scribe /usr/local/bin/
 
 For Windows:
 
-Extract the `.zip` file and add the folder containing `scribe.exe` to your system's Environment Variables (`PATH`).
+Extract the `.zip` file, open PowerShell in that directory, and run:
+
+```powershell
+.\install.ps1
+```
+
+(Or manually add the extracted folder containing scribe.exe to your system's PATH)
 
 ### Option 2: Using Go Install (For Go Developers)
 
@@ -98,7 +104,17 @@ go install github.com/alan-shabrandi/scribe/cmd/scribe@latest
 ```bash
 git clone https://github.com/alan-shabrandi/scribe.git
 cd scribe
+```
+
+```bash
+# Linux / macOS:
 go build -o scribe ./cmd/scribe
+```
+
+```bash
+# Windows (PowerShell):
+go build -o scribe.exe ./cmd/scribe
+.\install.ps1
 ```
 
 ---
