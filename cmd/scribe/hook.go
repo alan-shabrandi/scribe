@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -27,12 +26,6 @@ if [ -z "$COMMIT_SOURCE" ] || [ "$COMMIT_SOURCE" = "message" ] || [ "$COMMIT_SOU
     scribe generate --hook-mode "$COMMIT_MSG_FILE"
 fi
 `
-
-var (
-	green  = color.New(color.FgGreen, color.Bold).SprintFunc()
-	red    = color.New(color.FgRed, color.Bold).SprintFunc()
-	yellow = color.New(color.FgYellow).SprintFunc()
-)
 
 var hookCmd = &cobra.Command{
 	Use:   "hook",

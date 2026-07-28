@@ -4,8 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 type CacheData struct {
@@ -14,11 +17,15 @@ type CacheData struct {
 }
 
 func getCacheFilePath() (string, error) {
-	home, err := os.UserHomeDir()
+	cmd := exec.Command("git", "rev-parse", "--git-dir")
+	output, err := cmd.Output()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to locate .git directory: %w", err)
 	}
-	return filepath.Join(home, ".scribe_cache.json"), nil
+
+	gitDir := strings.TrimSpace(string(output))
+
+	return filepath.Join(gitDir, "scribe_cache.json"), nil
 }
 
 func ComputeHash(input string) string {
@@ -26,7 +33,7 @@ func ComputeHash(input string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func GetCachedCandidates(currentDiff string) ([]string, bool) {
+func GetCachedCandidates(diffHash string) ([]string, bool) {
 	cachePath, err := getCacheFilePath()
 	if err != nil {
 		return nil, false
@@ -42,26 +49,25 @@ func GetCachedCandidates(currentDiff string) ([]string, bool) {
 		return nil, false
 	}
 
-	currentHash := ComputeHash(currentDiff)
-	if cache.DiffHash == currentHash && len(cache.Candidates) > 0 {
+	if cache.DiffHash == diffHash && len(cache.Candidates) > 0 {
 		return cache.Candidates, true
 	}
 
 	return nil, false
 }
 
-func SaveCandidates(currentDiff string, candidates []string) error {
+func SaveCandidates(diffHash string, candidates []string) error {
 	cachePath, err := getCacheFilePath()
 	if err != nil {
 		return err
 	}
 
 	cache := CacheData{
-		DiffHash:   ComputeHash(currentDiff),
+		DiffHash:   diffHash,
 		Candidates: candidates,
 	}
 
-	data, err := json.MarshalIndent(cache, "", "  ")
+	data, err := json.Marshal(cache)
 	if err != nil {
 		return err
 	}

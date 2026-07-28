@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"time"
@@ -22,6 +21,13 @@ const (
 	spinnerSpeed       = 100 * time.Millisecond
 )
 
+var (
+	red    = color.New(color.FgRed, color.Bold).SprintFunc()
+	green  = color.New(color.FgGreen, color.Bold).SprintFunc()
+	yellow = color.New(color.FgYellow).SprintFunc()
+	cyan   = color.New(color.FgCyan, color.Bold).SprintFunc()
+)
+
 var hookMsgFilePath string
 
 var generateCmd = &cobra.Command{
@@ -37,11 +43,6 @@ func init() {
 }
 
 func runGenerate(cmd *cobra.Command, args []string) {
-	red := color.New(color.FgRed, color.Bold).SprintFunc()
-	green := color.New(color.FgGreen, color.Bold).SprintFunc()
-	yellow := color.New(color.FgYellow).SprintFunc()
-	cyan := color.New(color.FgCyan, color.Bold).SprintFunc()
-
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		fmt.Printf("%s Configuration Error: %v\n", red("❌"), err)
@@ -71,13 +72,15 @@ func runGenerate(cmd *cobra.Command, args []string) {
 		fmt.Printf("%s Detected Context: Branch '%s' (Ticket: %s)\n", cyan("📌"), branch, green(ticketID))
 	}
 
-	candidates, foundInCache := cache.GetCachedCandidates(diff)
+	diffHash := cache.ComputeHash(diff)
+
+	candidates, foundInCache := cache.GetCachedCandidates(diffHash)
 	if foundInCache {
 		fmt.Printf("%s Found valid cached responses for unchanged diff!\n", green("⚡"))
 	} else {
-		candidates = fetchCandidatesFromLLM(cfg, diff, ticketID)
+		candidates = fetchCandidatesFromLLM(cmd, cfg, diff, ticketID)
 		if len(candidates) > 0 {
-			_ = cache.SaveCandidates(diff, candidates)
+			_ = cache.SaveCandidates(diffHash, candidates)
 		}
 	}
 
@@ -89,17 +92,14 @@ func runGenerate(cmd *cobra.Command, args []string) {
 	handleUserSelection(candidates)
 }
 
-func fetchCandidatesFromLLM(cfg *config.Config, diff, ticketID string) []string {
-	red := color.New(color.FgRed, color.Bold).SprintFunc()
-	yellow := color.New(color.FgYellow).SprintFunc()
-
+func fetchCandidatesFromLLM(cmd *cobra.Command, cfg *config.Config, diff, ticketID string) []string {
 	provider, err := llm.NewProvider(cfg.Provider, cfg.APIKey, cfg.Model)
 	if err != nil {
 		fmt.Printf("%s Config Error: %v\n", red("❌"), err)
 		os.Exit(1)
 	}
 
-	ctx := context.Background()
+	ctx := cmd.Context()
 	diffChunks := git.SplitDiffByFile(diff)
 
 	var candidates []string
@@ -109,11 +109,7 @@ func fetchCandidatesFromLLM(cfg *config.Config, diff, ticketID string) []string 
 
 		var fileSummaries []string
 		for i, chunk := range diffChunks {
-			s := spinner.New(spinner.CharSets[spinnerCharSet], spinnerSpeed)
-			s.Suffix = fmt.Sprintf(" Summarizing file change %d/%d...", i+1, len(diffChunks))
-			s.Color("yellow", "bold")
-			s.Start()
-
+			s := startSpinner(fmt.Sprintf("Summarizing file change %d/%d...", i+1, len(diffChunks)), "yellow")
 			summary, err := provider.SummarizeFile(ctx, chunk)
 			s.Stop()
 
@@ -126,19 +122,11 @@ func fetchCandidatesFromLLM(cfg *config.Config, diff, ticketID string) []string 
 
 		summaryPrompt := llm.BuildSummaryBasedPrompt(fileSummaries, cfg.Style, ticketID)
 
-		s := spinner.New(spinner.CharSets[spinnerCharSet], spinnerSpeed)
-		s.Suffix = " Generating commit message options..."
-		s.Color("cyan", "bold")
-		s.Start()
-
+		s := startSpinner("Generating commit message options...", "cyan")
 		candidates, err = provider.GenerateMultipleCommitMessages(ctx, summaryPrompt, cfg.Style, ticketID)
 		s.Stop()
 	} else {
-		s := spinner.New(spinner.CharSets[spinnerCharSet], spinnerSpeed)
-		s.Suffix = fmt.Sprintf(" Generating candidate commit messages via '%s'...", yellow(cfg.Provider))
-		s.Color("cyan", "bold")
-		s.Start()
-
+		s := startSpinner(fmt.Sprintf("Generating candidate commit messages via '%s'...", yellow(cfg.Provider)), "cyan")
 		candidates, err = provider.GenerateMultipleCommitMessages(ctx, diff, cfg.Style, ticketID)
 		s.Stop()
 	}
@@ -152,10 +140,6 @@ func fetchCandidatesFromLLM(cfg *config.Config, diff, ticketID string) []string 
 }
 
 func handleUserSelection(candidates []string) {
-	red := color.New(color.FgRed, color.Bold).SprintFunc()
-	green := color.New(color.FgGreen, color.Bold).SprintFunc()
-	yellow := color.New(color.FgYellow).SprintFunc()
-
 	const (
 		OptionEditManual = "✏️  Edit custom message in system editor"
 		OptionCancel     = "🚫 Cancel"
@@ -219,9 +203,6 @@ func handleUserSelection(candidates []string) {
 }
 
 func commitAndFinish(msg string) {
-	green := color.New(color.FgGreen, color.Bold).SprintFunc()
-	red := color.New(color.FgRed, color.Bold).SprintFunc()
-
 	if hookMsgFilePath != "" {
 		if err := os.WriteFile(hookMsgFilePath, []byte(msg), 0644); err != nil {
 			fmt.Printf("%s Failed to write message to Git hook file: %v\n", red("❌"), err)
@@ -231,11 +212,19 @@ func commitAndFinish(msg string) {
 		return
 	}
 
-	fmt.Printf("%s Executing git commit...\n", color.CyanString("🚀"))
+	fmt.Printf("%s Executing git commit...\n", cyan("🚀"))
 	if err := git.ExecuteCommit(msg); err != nil {
 		fmt.Printf("%s Failed to commit: %v\n", red("❌"), err)
 		os.Exit(1)
 	}
 
 	fmt.Printf("%s Successfully committed staged changes!\n", green("🎉"))
+}
+
+func startSpinner(suffix, colorName string) *spinner.Spinner {
+	s := spinner.New(spinner.CharSets[spinnerCharSet], spinnerSpeed)
+	s.Suffix = " " + suffix
+	s.Color(colorName, "bold")
+	s.Start()
+	return s
 }
