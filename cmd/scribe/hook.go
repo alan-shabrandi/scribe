@@ -11,46 +11,38 @@ import (
 const (
 	gitDirName   = ".git"
 	hooksDirName = "hooks"
-	hookFileName = "prepare-commit-msg"
+	hookFileName = "pre-commit" // تغییر اسم به pre-commit
 )
 
 const hookContent = `#!/bin/sh
 # Scribe Git Hook
-# Automatically trigger scribe generate if commit message source is empty or message file
+# Triggers scribe generate before commit workflow initiates
 
-COMMIT_MSG_FILE=$1
-COMMIT_SOURCE=$2
-
-# Only auto-generate if user didn't provide a -m message or merge template
-if [ -z "$COMMIT_SOURCE" ] || [ "$COMMIT_SOURCE" = "message" ] || [ "$COMMIT_SOURCE" = "template" ]; then
-    if [ ! -t 0 ]; then
-        if ( : < /dev/tty ) 2>/dev/null; then
-            exec < /dev/tty
-        else
-            exit 0
-        fi
-    fi
-
-    # اجرای Scribe
-    scribe generate --hook-mode "$COMMIT_MSG_FILE"
-    
-    if [ $? -eq 0 ]; then
-        export GIT_EDITOR=true
+if [ ! -t 0 ]; then
+    if ( : < /dev/tty ) 2>/dev/null; then
+        exec < /dev/tty
     else
-        exit 1
+        exit 0
     fi
 fi
+
+# اجرای مستقیم scribe generate
+scribe generate
+
+# خروج با کد 1 باعث می‌شود کامیتِ اولیه/خالیِ گیت لغو شود، 
+# زیرا Scribe خودش کامیت نهایی را داخل تابع commitAndFinish اجرا کرده است.
+exit 1
 `
 
 var hookCmd = &cobra.Command{
 	Use:   "hook",
 	Short: "Manage Git hooks integration for automatic commit generation",
-	Long:  `Install or uninstall Scribe as a Git prepare-commit-msg hook in your current repository.`,
+	Long:  `Install or uninstall Scribe as a Git pre-commit hook in your current repository.`,
 }
 
 var hookInstallCmd = &cobra.Command{
 	Use:   "install",
-	Short: "Install prepare-commit-msg hook in current Git repository",
+	Short: "Install pre-commit hook in current Git repository",
 	Run: func(cmd *cobra.Command, args []string) {
 		hookPath, err := getHookPath()
 		if err != nil {
@@ -69,14 +61,14 @@ var hookInstallCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		fmt.Printf("%s Successfully installed Scribe prepare-commit-msg hook in %s!\n", green("🎉"), hookPath)
+		fmt.Printf("%s Successfully installed Scribe pre-commit hook in %s!\n", green("🎉"), hookPath)
 		fmt.Println("Now running 'git commit' will automatically invoke Scribe.")
 	},
 }
 
 var hookUninstallCmd = &cobra.Command{
 	Use:   "uninstall",
-	Short: "Uninstall prepare-commit-msg hook from current Git repository",
+	Short: "Uninstall pre-commit hook from current Git repository",
 	Run: func(cmd *cobra.Command, args []string) {
 		hookPath, err := getHookPath()
 		if err != nil {
@@ -94,7 +86,7 @@ var hookUninstallCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		fmt.Printf("%s Successfully uninstalled Scribe prepare-commit-msg hook.\n", green("🗑️"))
+		fmt.Printf("%s Successfully uninstalled Scribe pre-commit hook.\n", green("🗑️"))
 	},
 }
 

@@ -271,15 +271,6 @@ func handleUserSelection(candidates []string) {
 }
 
 func commitAndFinish(msg string) {
-	if hookMsgFilePath != "" {
-		if err := os.WriteFile(hookMsgFilePath, []byte(msg), 0644); err != nil {
-			fmt.Printf("%s Failed to write message to Git hook file: %v\n", red("❌"), err)
-			os.Exit(1)
-		}
-		fmt.Printf("%s Message written to Git commit buffer!\n", green("📝"))
-		os.Exit(0)
-	}
-
 	fmt.Printf("%s Executing git commit...\n", cyan("🚀"))
 	if err := git.ExecuteCommit(msg); err != nil {
 		fmt.Printf("%s Failed to commit: %v\n", red("❌"), err)

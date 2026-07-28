@@ -35,7 +35,7 @@ Generate meaningful Git commit messages instantly from your staged changes using
 - 🏷️ **Context Awareness:** Detects ticket IDs from branch names.
 - ⚡ **SHA-256 Caching:** Reuses responses for identical staged diffs.
 - 🧩 **Large Diff Handling:** Chunking and summarization for large changes.
-- 🔗 **Git Hook Support:** Works as both a CLI and `prepare-commit-msg` hook.
+- 🔗 **Git Hook Support:** Works as both a CLI and `pre-commit` hook.
 
 ### 💡 At a Glance
 
@@ -45,7 +45,7 @@ Generate meaningful Git commit messages instantly from your staged changes using
 | ⚡ Performance     | SHA-256 caching for identical staged diffs         |
 | 🏷️ Context         | Automatically detects ticket IDs from branch names |
 | 🧩 Large Changes   | Chunking and summarization for large diffs         |
-| 🪝 Git Integration | CLI and `prepare-commit-msg` hook support          |
+| 🪝 Git Integration | CLI and `pre-commit` hook support                  |
 
 ---
 
@@ -168,7 +168,11 @@ Scribe analyzes your staged changes and presents multiple candidates:
 
 ## 🔗 Git Hook Integration
 
-Use Scribe directly from your Git workflow by installing the `prepare-commit-msg` hook:
+Integrate Scribe directly into your native Git workflow. Once installed, simply run `git commit` as usual and let Scribe generate candidates for you automatically.
+
+<p align="center">
+  <img src="docs/demo-hook.gif" alt="Scribe Git Hook Demo" width="850">
+</p>
 
 ```bash
 scribe hook install
