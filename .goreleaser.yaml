@@ -49,16 +49,12 @@ brews:
     repository:
       owner: alan-shabrandi
       name: homebrew-tap
-      token: "{{ .Env.GITHUB_TOKEN }}"
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
 
     directory: Formula
-
     homepage: "https://github.com/alan-shabrandi/scribe"
     description: "An AI-powered CLI tool for automated Git commit message generation."
     license: "MIT"
 
     test: |
       system "#{bin}/scribe --version"
-
-    install: |
-      bin.install "scribe"
