@@ -11,7 +11,7 @@ import (
 const (
 	gitDirName   = ".git"
 	hooksDirName = "hooks"
-	hookFileName = "pre-commit" // تغییر اسم به pre-commit
+	hookFileName = "pre-commit"
 )
 
 const hookContent = `#!/bin/sh
@@ -26,11 +26,8 @@ if [ ! -t 0 ]; then
     fi
 fi
 
-# اجرای مستقیم scribe generate
 scribe generate
 
-# خروج با کد 1 باعث می‌شود کامیتِ اولیه/خالیِ گیت لغو شود، 
-# زیرا Scribe خودش کامیت نهایی را داخل تابع commitAndFinish اجرا کرده است.
 exit 1
 `
 

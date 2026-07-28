@@ -1,3 +1,4 @@
+// ./cmd/scribe/config.go
 package main
 
 import (
@@ -22,22 +23,22 @@ var configSetCmd = &cobra.Command{
 		key := args[0]
 		value := args[1]
 
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to find home directory: %w", err)
+		}
+
+		viper.AddConfigPath(home)
+		viper.SetConfigName(".scribe")
+		viper.SetConfigType("yaml")
+
+		_ = viper.ReadInConfig()
+
 		viper.Set(key, value)
 
-		if viper.ConfigFileUsed() != "" {
-			if err := viper.WriteConfig(); err != nil {
-				return fmt.Errorf("failed to write config: %w", err)
-			}
-		} else {
-			home, err := os.UserHomeDir()
-			if err != nil {
-				return fmt.Errorf("failed to find home directory: %w", err)
-			}
-
-			configPath := filepath.Join(home, ".scribe.yaml")
-			if err := viper.WriteConfigAs(configPath); err != nil {
-				return fmt.Errorf("failed to create config file at %s: %w", configPath, err)
-			}
+		configPath := filepath.Join(home, ".scribe.yaml")
+		if err := viper.WriteConfigAs(configPath); err != nil {
+			return fmt.Errorf("failed to write config file at %s: %w", configPath, err)
 		}
 
 		fmt.Printf("✔ Updated %s = %s\n", key, value)
