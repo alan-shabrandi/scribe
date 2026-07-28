@@ -65,9 +65,9 @@ Generate meaningful Git commit messages instantly from your staged changes using
 
 ## 📦 Installation
 
-### Option 1: Pre-compiled Binaries (Recommended)
+### Option 1: Pre-compiled Binaries (Recommended for Windows / Mac / Linux)
 
-Download the latest pre-compiled binaries for Windows, macOS, and Linux from the [Releases page](https://github.com/alan-shabrandi/scribe/releases/latest).
+Download the latest binary from [Releases](https://github.com/alan-shabrandi/scribe/releases/latest).
 
 For macOS / Linux:
 
@@ -86,13 +86,15 @@ Extract the `.zip` file, open PowerShell in that directory, and run:
 
 (Or manually add the extracted folder containing scribe.exe to your system's PATH)
 
-### Option 2: Using Go Install (For Go Developers)
+### Option 2: Using Go Install
 
 If you have Go 1.21+ installed, this is the easiest way:
 
 ```bash
 go install github.com/alan-shabrandi/scribe/cmd/scribe@latest
 ```
+
+Note for Go developers: If you previously installed Scribe via go install, make sure your $GOPATH/bin doesn't conflict with system PATH binaries.
 
 ### Option 3: Build from Source
 
@@ -246,8 +248,6 @@ scribe/
 ├── go.mod
 └── README.md
 ```
-
----
 
 ---
 

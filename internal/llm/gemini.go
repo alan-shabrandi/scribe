@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
-const geminiBaseURLTemplate = "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s"
+const geminiBaseURLTemplate = "https://generativelanguage.googleapis.com/v1beta/%s:generateContent?key=%s"
 
 type Content struct {
 	Parts []Part `json:"parts"`
@@ -28,6 +29,7 @@ type Candidate struct {
 type GeminiResponse struct {
 	Candidates []Candidate `json:"candidates"`
 }
+
 type GeminiClient struct {
 	APIKey     string
 	Model      string
@@ -54,7 +56,16 @@ func (c *GeminiClient) headers() map[string]string {
 }
 
 func (c *GeminiClient) url() string {
-	return fmt.Sprintf(geminiBaseURLTemplate, c.Model, c.APIKey)
+	modelName := c.Model
+	if modelName == "" {
+		modelName = "gemini-1.5-flash"
+	}
+
+	if !strings.HasPrefix(modelName, "models/") {
+		modelName = "models/" + modelName
+	}
+
+	return fmt.Sprintf(geminiBaseURLTemplate, modelName, c.APIKey)
 }
 
 func (c *GeminiClient) GenerateCommitMessage(ctx context.Context, diff, style, ticketID string) (string, error) {
