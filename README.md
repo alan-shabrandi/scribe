@@ -8,6 +8,18 @@ Generate meaningful Git commit messages instantly from your staged changes using
   <img src="docs/demo.gif" alt="Scribe Demo" width="850">
 </p>
 
+## 🧩 Use Scribe Your Way
+
+Scribe is designed to fit into your existing Git workflow:
+
+- 💻 **CLI:** Generate commit messages directly from your terminal, no matter which IDE or editor you use.
+- 🪝 **Git Hook:** Integrate Scribe into your native git commit workflow and generate commit messages automatically.
+- 🧩 **VS Code Extension:** If you use VS Code, generate commit messages directly from the Source Control panel using the dedicated Scribe extension.
+
+The **Scribe CLI is the core of the project**, while the VS Code extension provides a convenient native experience for VS Code users.
+
+👉 **[Get the Scribe VS Code Extension](https://marketplace.visualstudio.com/items?itemName=alan-shabrandi.scribe-vscode)**
+
 <p align="left">
   <!-- Go Version -->
   <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat-square&logo=go" alt="Go Version"></a>
