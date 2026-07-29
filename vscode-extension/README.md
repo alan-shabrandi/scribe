@@ -18,7 +18,7 @@ Seamlessly integrate **Scribe** into your VS Code workflow to generate conventio
 
 ## 📸 Demo
 
-![Scribe Demo](./docs/demo-v2.gif)
+![Scribe Demo](docs/demo-v2.gif)
 
 ---
 
