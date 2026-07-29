@@ -1,4 +1,4 @@
-# ✍️ Scribe — AI Commit Message Generator for VS Code
+# ✍️ Scribe — AI Commit Message Generator
 
 <p align="center">
   <b>Generate clean, meaningful Git commit messages directly inside VS Code using AI.</b>
@@ -6,19 +6,20 @@
 
 <p align="center">
 
-![License](https://img.shields.io/badge/License-MIT-green)
-![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
-![VS Code](https://img.shields.io/badge/VS%20Code-Extension-007ACC)
+[![VS Code Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/alan-shabrandi.scribe-vscode?style=flat-square&color=blue&label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=alan-shabrandi.scribe-vscode)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/alan-shabrandi.scribe-vscode?style=flat-square&color=green)](https://marketplace.visualstudio.com/items?itemName=alan-shabrandi.scribe-vscode)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 </p>
-
 Seamlessly integrate **Scribe** into your VS Code workflow to generate conventional commit messages from staged changes with a single click.
 
 ---
 
 ## 📸 Demo
 
-![Scribe Demo](docs/demo-v3.gif)
+<p align="center">
+  <img src="docs/demo-v4.gif" alt="Scribe Demo" width="850">
+</p>
 
 ---
 
