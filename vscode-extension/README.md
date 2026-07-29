@@ -25,14 +25,15 @@ Seamlessly integrate **Scribe** into your VS Code workflow to generate conventio
 
 ## ✨ Features
 
-| Feature                 | Description                                 |
-| ----------------------- | ------------------------------------------- |
-| ⚡ One-Click Generation | Generate commit messages instantly          |
-| 🤖 Multi-Provider       | OpenAI, Claude, Gemini and Ollama           |
-| 🏷️ Ticket Detection     | Detect issue IDs from branch names          |
-| 💾 Smart Caching        | SHA-256 cache avoids duplicate API calls    |
-| 📝 Conventional Commits | Clean and consistent commit messages        |
-| 🔗 Native Integration   | Writes directly into the VS Code commit box |
+| Feature                 | Description                                        |
+| ----------------------- | -------------------------------------------------- |
+| ⚡ One-Click Generation | Generate commit messages instantly                 |
+| ⌨️ Keyboard Shortcut    | Trigger generation with `Ctrl+Alt+C` / `Cmd+Alt+C` |
+| 🤖 Multi-Provider       | OpenAI, Claude, Gemini and Ollama                  |
+| 🏷️ Ticket Detection     | Detect issue IDs from branch names                 |
+| 💾 Smart Caching        | SHA-256 cache avoids duplicate API calls           |
+| 📝 Conventional Commits | Clean and consistent commit messages               |
+| 🔗 Native Integration   | Writes directly into the VS Code commit box        |
 
 ---
 
@@ -66,11 +67,14 @@ scribe config set api_key YOUR_API_KEY
 ## 💡 Usage
 
 1. Stage your Git changes (`git add .`).
-2. Click the Scribe button in the Source Control panel or press `Ctrl+Shift+P` (`Cmd+Shift+P` on Mac) and run:
+2. Trigger Scribe using **any** of the following methods:
 
-```text
-Scribe: Generate Commit Message
-```
+- ⌨️ Press **`Ctrl+Alt+C`** (_`Cmd+Alt+C` on macOS_).
+- 🖱️ Click the Scribe button in the Source Control panel.
+- 💬 Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and run:
+  ```text
+  Scribe: Generate Commit Message
+  ```
 
 3. Select a suggestion from the menu.
 4. The generated message will be automatically inserted into your VS Code commit box!
