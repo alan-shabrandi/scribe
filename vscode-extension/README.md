@@ -18,7 +18,7 @@ Seamlessly integrate **Scribe** into your VS Code workflow to generate conventio
 ## 📸 Demo
 
 <p align="center">
-  <img src="https://i.imgur.com/MXJqu7x.gif" alt="Scribe Demo" width="850">
+  <img src="https://i.imgur.com/Ra357nT.gif" alt="Scribe Demo" width="850">
 </p>
 
 ---
