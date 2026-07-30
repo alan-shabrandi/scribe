@@ -51,7 +51,12 @@ func sendJSONRequest(ctx context.Context, client *http.Client, method, url strin
 
 func cleanResponseText(raw string) string {
 	cleaned := strings.TrimSpace(raw)
-	cleaned = strings.TrimPrefix(cleaned, "```")
+	if strings.HasPrefix(cleaned, "```") {
+		cleaned = strings.TrimPrefix(cleaned, "```")
+		if idx := strings.IndexByte(cleaned, '\n'); idx != -1 && strings.TrimSpace(cleaned[:idx]) != "" {
+			cleaned = cleaned[idx+1:]
+		}
+	}
 	cleaned = strings.TrimSuffix(cleaned, "```")
 	return strings.TrimSpace(cleaned)
 }

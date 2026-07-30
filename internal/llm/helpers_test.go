@@ -42,17 +42,27 @@ func TestCleanResponseText(t *testing.T) {
 		},
 
 		{
-			// TODO/FIXME: The Markdown was not removed.
-			// want: feat: add new button
 			name:  "remove codeblock with language",
 			input: "```markdown\nfeat: add new button\n```",
-			want:  "markdown\nfeat: add new button",
+			want:  "feat: add new button",
+		},
+
+		{
+			name:  "remove codeblock with json language",
+			input: "```json\nfeat: add new feature\n```",
+			want:  "feat: add new feature",
 		},
 
 		{
 			name:  "mixed spaces and backticks",
 			input: "  ```\n  chore: update deps  \n```  ",
 			want:  "chore: update deps",
+		},
+
+		{
+			name:  "no codeblock, single word first line is preserved",
+			input: "wip\nfinish the thing later",
+			want:  "wip\nfinish the thing later",
 		},
 	}
 
