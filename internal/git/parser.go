@@ -2,6 +2,7 @@ package git
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -65,5 +66,28 @@ func isIgnoredFile(header string) bool {
 			return true
 		}
 	}
+
+	for _, pattern := range loadCustomIgnores() {
+		if matchesIgnorePattern(header, pattern) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// matchesIgnorePattern matches a .scribeignore pattern against a diff header; globs use filepath.Match, plain text falls back to substring match.
+func matchesIgnorePattern(header, pattern string) bool {
+	if !strings.ContainsAny(pattern, "*?[") {
+		return strings.Contains(header, pattern)
+	}
+
+	for field := range strings.FieldsSeq(header) {
+		name := strings.TrimPrefix(strings.TrimPrefix(field, "a/"), "b/")
+		if ok, err := filepath.Match(pattern, name); err == nil && ok {
+			return true
+		}
+	}
+
 	return false
 }
