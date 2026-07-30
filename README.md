@@ -1,141 +1,68 @@
-# ✍️ Scribe
+# Scribe
 
-> AI-powered Git Commit Assistant that generates clean, meaningful commit messages from your staged changes using LLMs.
+> AI-powered Git Commit Assistant that generates meaningful commit messages from your staged changes using your preferred LLM.
 
-Generate meaningful Git commit messages instantly from your staged changes using OpenAI, Claude, Gemini, or Ollama.
+Generate commit messages from staged Git changes using OpenAI, Claude, Gemini, or Ollama.
 
 <p align="center">
   <img src="docs/demo.gif" alt="Scribe Demo" width="850">
 </p>
 
-## 🧩 Use Scribe Your Way
+## Overview
 
-Scribe is designed to fit into your existing Git workflow:
+Scribe fits into your existing Git workflow in different ways:
 
-- 💻 **CLI:** Generate commit messages directly from your terminal, no matter which IDE or editor you use.
-- 🪝 **Git Hook:** Integrate Scribe into your native git commit workflow and generate commit messages automatically.
-- 🧩 **VS Code Extension:** If you use VS Code, generate commit messages directly from the Source Control panel using the dedicated Scribe extension.
+- **CLI** — Generate commit messages from any terminal.
+- **Git Hook** — Integrate with `git commit` and generate messages automatically.
+- **VS Code Extension** — Generate commit messages directly from the Source Control panel.
 
-The **Scribe CLI is the core of the project**, while the VS Code extension provides a convenient native experience for VS Code users.
+The CLI is the core of the project, while the VS Code extension provides a native experience for VS Code users.
 
-👉 **[Get the Scribe VS Code Extension](https://marketplace.visualstudio.com/items?itemName=alan-shabrandi.scribe-vscode)**
+👉 https://marketplace.visualstudio.com/items?itemName=alan-shabrandi.scribe-vscode
 
-<p align="left">
-  <!-- Go Version -->
-  <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat-square&logo=go" alt="Go Version"></a>
-  <!-- Latest Release -->
-  <a href="https://github.com/alan-shabrandi/scribe/releases/latest"><img src="https://img.shields.io/github/v/release/alan-shabrandi/scribe?style=flat-square&color=blue" alt="Latest Release"></a>
-  <!-- CI / Build Status -->
-  <a href="https://github.com/alan-shabrandi/scribe/actions"><img src="https://img.shields.io/github/actions/workflow/status/alan-shabrandi/scribe/ci.yml?branch=main&style=flat-square&label=build" alt="Build Status"></a>
-  <!-- License -->
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg?style=flat-square" alt="License"></a>
-  <!-- Open Issues -->
-  <a href="https://github.com/alan-shabrandi/scribe/issues"><img src="https://img.shields.io/github/issues/alan-shabrandi/scribe?style=flat-square&color=orange" alt="Issues"></a>
-  <!-- PRs Welcome -->
-  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square" alt="PRs Welcome"></a>
-  <!-- GitHub Stars -->
-  <a href="https://github.com/alan-shabrandi/scribe/stargazers"><img src="https://img.shields.io/github/stars/alan-shabrandi/scribe?style=flat-square" alt="Stars"></a>
-</p>
+## Table of Contents
 
----
+- Features
+- Installation
+- Quick Start
+- Configuration
+- Usage
+- Git Hook Integration
+- Performance
+- Project Structure
+- Contributing
+- License
 
-## 📚 Table of Contents
+## Features
 
-- [✨ Features](#-features)
-- [📦 Installation](#-installation)
-- [🚀 Quick Start](#-quick-start)
-- [⚙️ Configuration](#️-configuration)
-- [📖 Usage](#-usage)
-- [🔗 Git Hook Integration](#-git-hook-integration)
-- [⚡ Performance & Caching](#-performance--caching)
-- [🛠️ Project Structure](#️-project-structure)
-- [⭐ Support](#-support)
-- [📄 License](#-license)
+- Supports OpenAI, Claude, Gemini, and Ollama
+- Interactive CLI built with Cobra and Survey
+- Detects ticket IDs from branch names
+- SHA-256 caching for identical staged diffs
+- Handles large diffs through chunking and summarization
+- Can be used as both a CLI and Git hook
 
----
+## Installation
 
-## ✨ Features
+### Pre-built binaries
 
-- 🤖 **Multi-Provider Support:** OpenAI, Anthropic Claude, Google Gemini, and Ollama.
-- 💬 **Interactive CLI:** Built with Cobra and Survey.
-- 🏷️ **Context Awareness:** Detects ticket IDs from branch names.
-- ⚡ **SHA-256 Caching:** Reuses responses for identical staged diffs.
-- 🧩 **Large Diff Handling:** Chunking and summarization for large changes.
-- 🔗 **Git Hook Support:** Works as both a CLI and `pre-commit` hook.
+Download the latest release from GitHub Releases.
 
-### 💡 At a Glance
-
-| Capability         | Details                                            |
-| ------------------ | -------------------------------------------------- |
-| 🤖 AI Providers    | OpenAI, Claude, Gemini, Ollama                     |
-| ⚡ Performance     | SHA-256 caching for identical staged diffs         |
-| 🏷️ Context         | Automatically detects ticket IDs from branch names |
-| 🧩 Large Changes   | Chunking and summarization for large diffs         |
-| 🪝 Git Integration | CLI and `pre-commit` hook support                  |
-
----
-
-## 📦 Installation
-
-### Option 1: Pre-compiled Binaries (Recommended for Windows / Mac / Linux)
-
-Download the latest binary from [Releases](https://github.com/alan-shabrandi/scribe/releases/latest).
-
-For macOS / Linux:
-
-```bash
-tar -xzf scribe_*_linux_amd64.tar.gz
-sudo mv scribe /usr/local/bin/
-```
-
-For Windows:
-
-Extract the `.zip` file, open PowerShell in that directory, and run:
-
-```powershell
-.\install.ps1
-```
-
-(Or manually add the extracted folder containing scribe.exe to your system's PATH)
-
-### Option 2: Using Go Install
-
-If you have Go 1.21+ installed, this is the easiest way:
+### Go
 
 ```bash
 go install github.com/alan-shabrandi/scribe/cmd/scribe@latest
 ```
 
-Note for Go developers: If you previously installed Scribe via go install, make sure your $GOPATH/bin doesn't conflict with system PATH binaries.
-
-### Option 3: Build from Source
-
-#### Prerequisites
-
-- Go 1.21+
-- Git
+### Build from source
 
 ```bash
 git clone https://github.com/alan-shabrandi/scribe.git
 cd scribe
-```
-
-```bash
-# Linux / macOS:
 go build -o scribe ./cmd/scribe
 ```
 
-```bash
-# Windows (PowerShell):
-go build -o scribe.exe ./cmd/scribe
-.\install.ps1
-```
-
----
-
-## 🚀 Quick Start
-
-Once Scribe is installed, configure your provider and generate your first commit message:
+## Quick Start
 
 ```bash
 scribe config set provider openai
@@ -145,142 +72,68 @@ git add .
 scribe generate
 ```
 
-That's it — Scribe analyzes your staged changes and generates clean commit message candidates for you to choose from.
+Scribe analyzes your staged changes and suggests commit message candidates.
 
-> **Need more configuration options?** See the [Configuration](#️-configuration) section below.
+## Configuration
 
----
-
-## ⚙️ Configuration
-
-Scribe stores its configuration in:
+Configuration is stored in:
 
 ```text
 ~/.scribe.yaml
 ```
 
-| Setting    | Description                                   | Example        |
-| ---------- | --------------------------------------------- | -------------- |
-| `provider` | LLM provider used to generate commit messages | `openai`       |
-| `model`    | Model used by the selected provider           | `gpt-4o`       |
-| `style`    | Commit message style                          | `conventional` |
-| `api_key`  | API key for the selected provider             | `your-api-key` |
+Common settings:
 
-Configure Scribe using:
+- provider
+- model
+- style
+- api_key
 
-```bash
-scribe config set provider openai
-scribe config set api_key "your-api-key"
-scribe config set model "gpt-4o"
-scribe config set style "conventional"
-```
-
----
-
-## 📖 Usage
-
-### 1. Stage Your Changes
+## Usage
 
 ```bash
 git add .
-```
-
-### 2. Generate Commit Messages
-
-```bash
 scribe generate
 ```
 
-### 3. Choose a Commit Message
-
-Scribe analyzes your staged changes and presents multiple candidates:
-
-```text
-🔍 Fetching staged git changes...
-📌 Detected Context: Branch 'feature/PROJ-892-add-cache'
-✔ Generating candidate commit messages via 'openai'...
-
-? Select a commit message option:
-
-▸ feat(cache): add SHA-256 caching for staged diffs (PROJ-892)
-  perf(diff): skip LLM invocation on identical git diff (PROJ-892)
-  ✏️ Edit custom message in system editor
-  🚫 Cancel
-```
-
----
-
-## 🔗 Git Hook Integration
-
-Integrate Scribe directly into your native Git workflow. Once installed, simply run `git commit` as usual and let Scribe generate candidates for you automatically.
-
-<p align="center">
-  <img src="docs/demo-hook.gif" alt="Scribe Git Hook Demo" width="850">
-</p>
+## Git Hook Integration
 
 ```bash
 scribe hook install
 ```
 
-To remove the hook:
+Remove the hook:
 
 ```bash
 scribe hook uninstall
 ```
 
-This lets Scribe integrate into your commit workflow without requiring you to manually run the generation command every time.
+## Performance
 
----
+Scribe caches responses for identical staged diffs using SHA-256, reducing unnecessary LLM requests.
 
-## ⚡ Performance & Caching
-
-Scribe uses SHA-256 caching to avoid repeated LLM requests for identical staged diffs.
-
-Cached responses are stored in:
+Cache location:
 
 ```text
 ~/.scribe_cache.json
 ```
 
-This helps reduce unnecessary LLM calls and makes repeated commit message generation faster.
-
----
-
-## 🛠️ Project Structure
+## Project Structure
 
 ```text
 scribe/
 ├── cmd/
-│   └── scribe/
 ├── internal/
-│   ├── cache/
-│   ├── config/
-│   ├── git/
-│   └── llm/
 ├── go.mod
 └── README.md
 ```
 
----
+## Contributing
 
-## 💖 Support & Contributing
+Issues and pull requests are welcome.
 
-If Scribe saves you time and makes your commits cleaner, please consider giving it a ⭐!
+If Scribe is useful to you, consider giving the repository a star.
 
-- 🐛 **Found a bug?** Open an issue on [GitHub Issues](https://github.com/alan-shabrandi/scribe/issues).
-- 💡 **Have an idea or fix?** Contributions are always welcome! Check out our [CONTRIBUTING.md](CONTRIBUTING.md).
+## License
 
-<p align="center">
-  <br>
-  <a href="https://github.com/alan-shabrandi/scribe">
-    <img src="https://img.shields.io/badge/Give_a_⭐_on_GitHub-238636?style=for-the-badge&logo=github" alt="Star on GitHub" />
-  </a>
-</p>
-
----
-
-## 📄 License
-
-Licensed under the MIT License.
-
-See `LICENSE` for details.
+Released under the MIT License.
