@@ -196,12 +196,4 @@ Every contribution helps make Scribe better.
 
 If you find Scribe useful, consider giving the project a ⭐ on GitHub.
 
-```{=html}
-<p align="center">
-```
-
 Made with ❤️ by the Scribe community
-
-```{=html}
-</p>
-```
