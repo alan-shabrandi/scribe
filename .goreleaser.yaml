@@ -19,7 +19,7 @@ builds:
     main: ./cmd/scribe
     binary: scribe
     ldflags:
-      - -s -w -X main.version={{.Version}}
+      - -s -w -X main.version={{.Tag}}
 
 archives:
   - format: tar.gz
