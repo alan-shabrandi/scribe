@@ -1,4 +1,4 @@
-# ✍️ Scribe — AI Commit Message Generator
+# Scribe — AI Commit Message Generator
 
 <p align="center">
   <b>Generate clean, meaningful Git commit messages directly inside VS Code using AI.</b>
@@ -11,11 +11,12 @@
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 </p>
-Seamlessly integrate **Scribe** into your VS Code workflow to generate conventional commit messages from staged changes with a single click.
+
+Scribe generates conventional commit messages from your staged Git changes and inserts them directly into the VS Code Source Control view.
 
 ---
 
-## 📸 Demo
+## Demo
 
 <p align="center">
   <img src="https://i.imgur.com/Ra357nT.gif" alt="Scribe Demo" width="850">
@@ -23,39 +24,45 @@ Seamlessly integrate **Scribe** into your VS Code workflow to generate conventio
 
 ---
 
-## ✨ Features
+## Features
 
-| Feature                 | Description                                        |
-| ----------------------- | -------------------------------------------------- |
-| ⚡ One-Click Generation | Generate commit messages instantly                 |
-| ⌨️ Keyboard Shortcut    | Trigger generation with `Ctrl+Alt+C` / `Cmd+Alt+C` |
-| 🤖 Multi-Provider       | OpenAI, Claude, Gemini and Ollama                  |
-| 🏷️ Ticket Detection     | Detect issue IDs from branch names                 |
-| 💾 Smart Caching        | SHA-256 cache avoids duplicate API calls           |
-| 📝 Conventional Commits | Clean and consistent commit messages               |
-| 🔗 Native Integration   | Writes directly into the VS Code commit box        |
+| Feature              | Description                                                       |
+| -------------------- | ----------------------------------------------------------------- |
+| One-click generation | Generate a commit message from staged changes                     |
+| Keyboard shortcut    | Trigger generation with `Ctrl+Alt+C` / `Cmd+Alt+C`                |
+| Multiple providers   | OpenAI, Claude, Gemini, and Ollama                                |
+| Ticket detection     | Detect issue IDs from branch names                                |
+| Smart caching        | SHA-256 cache prevents duplicate API calls                        |
+| Conventional Commits | Generate messages following the Conventional Commits format       |
+| Native integration   | Insert the generated message directly into the VS Code commit box |
 
 ---
 
-## 🚀 Quick Setup & Installation
+## Installation
 
-Scribe VS Code extension acts as a frontend interface for the **Scribe CLI**.
+Scribe is a VS Code extension that uses the [Scribe CLI](https://github.com/alan-shabrandi/scribe) to generate commit messages.
 
-### 1️⃣ Install Scribe CLI
+### 1. Install the Scribe CLI
 
-Download the latest executable binary for your operating system:
+Download the latest binary for your operating system from the [Scribe CLI releases](https://github.com/alan-shabrandi/scribe/releases).
 
-- 🪟 **Windows:** Download `scribe.exe` from **[Releases](https://github.com/alan-shabrandi/scribe/releases)** and add its directory to your system `PATH`.
-- 🍎 **macOS / 🐧 Linux:** Download the binary and move it to your path:
-  ```bash
-  sudo mv scribe /usr/local/bin/
-  ```
+On Windows, download `scribe.exe` and add its directory to your system `PATH`.
 
-> 💡 _Prefer installing via Go or building from source? Check the [Scribe CLI Repository](https://github.com/alan-shabrandi/scribe) for full details._
+On macOS or Linux:
 
-### 2️⃣ Initial Configuration
+```bash
+sudo mv scribe /usr/local/bin/
+```
 
-Open your terminal and set your preferred AI provider and API key:
+For other installation options, including building from source, see the [Scribe CLI repository](https://github.com/alan-shabrandi/scribe).
+
+### 2. Install the VS Code extension
+
+Install Scribe from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=alan-shabrandi.scribe-vscode).
+
+### 3. Configure Scribe
+
+Set your preferred provider and API key:
 
 ```bash
 scribe config set provider openai
@@ -64,26 +71,34 @@ scribe config set api_key YOUR_API_KEY
 
 ---
 
-## 💡 Usage
+## Usage
 
-1. Stage your Git changes (`git add .`).
-2. Trigger Scribe using **any** of the following methods:
+1. Stage your Git changes:
 
-- ⌨️ Press **`Ctrl+Alt+C`** (_`Cmd+Alt+C` on macOS_).
-- 🖱️ Click the Scribe button in the Source Control panel.
-- 💬 Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and run:
-  ```text
-  Scribe: Generate Commit Message
-  ```
+   ```bash
+   git add .
+   ```
 
-3. Select a suggestion from the menu.
-4. The generated message will be automatically inserted into your VS Code commit box!
+2. Trigger Scribe using one of the following methods:
+   - Press `Ctrl+Alt+C` (`Cmd+Alt+C` on macOS).
+   - Click the Scribe button in the Source Control panel.
+   - Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and run:
+
+     ```text
+     Scribe: Generate Commit Message
+     ```
+
+3. Select a suggestion.
+
+4. Scribe inserts the generated message into the VS Code commit box.
 
 ---
 
-## ⚙️ Advanced Configuration
+## Configuration
 
-Customize model selection, styles, and providers using the CLI:
+You can configure the provider, model, and commit message style through the CLI.
+
+For example:
 
 ```bash
 scribe config set provider openai
@@ -93,20 +108,20 @@ scribe config set style conventional
 
 ---
 
-## 🤖 Supported Providers
+## Supported Providers
 
 | Provider | Supported |
 | -------- | --------- |
-| OpenAI   | ✅        |
-| Claude   | ✅        |
-| Gemini   | ✅        |
-| Ollama   | ✅        |
+| OpenAI   | Yes       |
+| Claude   | Yes       |
+| Gemini   | Yes       |
+| Ollama   | Yes       |
 
 ---
 
-## 🛣️ Roadmap
+## Roadmap
 
-- [x] VS Code Extension
+- [x] VS Code extension
 - [x] Multi-provider support
 - [x] Smart caching
 - [ ] Custom prompt templates
@@ -115,10 +130,10 @@ scribe config set style conventional
 
 ---
 
-## ⭐️ Support & Feedback
+## Support
 
-If you find **Scribe** useful, please leave a 5-star review on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=alan-shabrandi.scribe-vscode) or star the repository on [GitHub](https://github.com/alan-shabrandi/scribe)!
+If you find Scribe useful, consider leaving a review on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=alan-shabrandi.scribe-vscode) or starring the [GitHub repository](https://github.com/alan-shabrandi/scribe).
 
-## 📄 License
+## License
 
 Released under the MIT License.
