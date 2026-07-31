@@ -41,6 +41,7 @@ The CLI is the core of the project, while the VS Code extension provides a nativ
 - SHA-256 caching for identical staged diffs
 - Handles large diffs through chunking and summarization
 - Can be used as both a CLI and Git hook
+- Supports `.scribeignore` to skip custom files or patterns from diff analysis
 
 ## Installation
 
@@ -106,6 +107,17 @@ Remove the hook:
 
 ```bash
 scribe hook uninstall
+```
+
+## Ignoring Files
+
+You can create a `.scribeignore` file in the root of your repository to ignore specific files or patterns from being processed by Scribe (similar to `.gitignore`):
+
+```text
+# Ignore lockfiles and generated files
+*.lock
+docs/*.md
+vendor/
 ```
 
 ## Performance

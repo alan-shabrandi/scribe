@@ -30,6 +30,7 @@ Scribe generates conventional commit messages from your staged Git changes and i
 | -------------------- | ----------------------------------------------------------------- |
 | One-click generation | Generate a commit message from staged changes                     |
 | Keyboard shortcut    | Trigger generation with `Ctrl+Alt+C` / `Cmd+Alt+C`                |
+| Custom Ignores       | Respects `.scribeignore` files to skip lockfiles and custom paths |
 | Multiple providers   | OpenAI, Claude, Gemini, and Ollama                                |
 | Ticket detection     | Detect issue IDs from branch names                                |
 | Smart caching        | SHA-256 cache prevents duplicate API calls                        |
