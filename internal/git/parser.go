@@ -82,8 +82,13 @@ func matchesIgnorePattern(header, pattern string) bool {
 		return strings.Contains(header, pattern)
 	}
 
+	hasSlash := strings.Contains(pattern, "/")
+
 	for field := range strings.FieldsSeq(header) {
 		name := strings.TrimPrefix(strings.TrimPrefix(field, "a/"), "b/")
+		if !hasSlash {
+			name = filepath.Base(name)
+		}
 		if ok, err := filepath.Match(pattern, name); err == nil && ok {
 			return true
 		}

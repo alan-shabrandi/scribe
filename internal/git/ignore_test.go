@@ -24,3 +24,25 @@ func TestMatchesIgnorePattern(t *testing.T) {
 		})
 	}
 }
+
+func TestMatchesIgnorePattern_Subdirectories(t *testing.T) {
+	tests := []struct {
+		name    string
+		header  string
+		pattern string
+		want    bool
+	}{
+		{"glob filename in subdirectory", "a/internal/git/foo.generated.go b/internal/git/foo.generated.go", "*.generated.go", true},
+		{"glob directory prefix with wildcard", "a/docs/api/readme.md b/docs/api/readme.md", "docs/*.md", false},
+		{"nested path match with wildcard", "a/pkg/utils/helper.go b/pkg/utils/helper.go", "pkg/*/*.go", true},
+		{"nested path miss with single wildcard", "a/pkg/utils/sub/helper.go b/pkg/utils/sub/helper.go", "pkg/*/*.go", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := matchesIgnorePattern(tt.header, tt.pattern); got != tt.want {
+				t.Errorf("matchesIgnorePattern(%q, %q) = %v; want %v", tt.header, tt.pattern, got, tt.want)
+			}
+		})
+	}
+}
