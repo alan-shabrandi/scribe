@@ -2,7 +2,7 @@ package git
 
 import (
 	"fmt"
-	"path/filepath"
+	"path"
 	"strings"
 )
 
@@ -76,23 +76,36 @@ func isIgnoredFile(header string) bool {
 	return false
 }
 
-// matchesIgnorePattern matches a .scribeignore pattern against a diff header; globs use filepath.Match, plain text falls back to substring match.
+// matchesIgnorePattern matches a .scribeignore pattern against a diff header, gitignore-style:
+// a pattern with no "/" matches the filename at any depth; a pattern with "/" (or a leading "/")
+// matches the full repo-relative path. Globs use path.Match (diff headers always use "/", so
+// path.Match is used over filepath.Match to stay OS-independent); plain text falls back to substring match.
 func matchesIgnorePattern(header, pattern string) bool {
 	if !strings.ContainsAny(pattern, "*?[") {
 		return strings.Contains(header, pattern)
 	}
 
-	hasSlash := strings.Contains(pattern, "/")
+	anchored := strings.HasPrefix(pattern, "/")
+	pattern = strings.TrimPrefix(pattern, "/")
+	hasSlash := anchored || strings.Contains(pattern, "/")
 
-	for field := range strings.FieldsSeq(header) {
-		name := strings.TrimPrefix(strings.TrimPrefix(field, "a/"), "b/")
+	for _, name := range diffPaths(header) {
 		if !hasSlash {
-			name = filepath.Base(name)
+			name = path.Base(name)
 		}
-		if ok, err := filepath.Match(pattern, name); err == nil && ok {
+		if ok, err := path.Match(pattern, name); err == nil && ok {
 			return true
 		}
 	}
 
 	return false
+}
+
+// diffPaths extracts the "a/" and "b/" paths from a "diff --git a/X b/X" header.
+func diffPaths(header string) []string {
+	before, after, ok := strings.Cut(header, " b/")
+	if !ok {
+		return nil
+	}
+	return []string{strings.TrimPrefix(before, "a/"), after}
 }
