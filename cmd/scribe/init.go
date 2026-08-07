@@ -138,6 +138,8 @@ func getDefaultModel(provider string) string {
 }
 
 func capitalizeFirst(s string) string {
+	//Helper func used only in ollama sanitization
+	// Takes s string as input to capitalize the strings first letter only, and lowercase the following strings if any.
 	if len(s) == 0 {
 		return s
 	}
