@@ -19,6 +19,9 @@ type ConfigFile struct {
 	APIKey   string `yaml:"api_key,omitempty"`
 	Model    string `yaml:"model"`
 	Style    string `yaml:"style"`
+	// Written explicitly rather than with omitempty: a visible "auto_copy: false"
+	// tells the reader the setting exists.
+	AutoCopy bool `yaml:"auto_copy"`
 }
 
 var (
@@ -101,6 +104,7 @@ func gatherUserConfig() (*ConfigFile, error) {
 		APIKey:   apiKey,
 		Model:    model,
 		Style:    style,
+		AutoCopy: false,
 	}, nil
 }
 

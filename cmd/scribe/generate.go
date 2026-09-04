@@ -73,6 +73,11 @@ func runGenerate(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// An explicit -c/--copy wins; otherwise fall back to the auto_copy setting.
+	if !cmd.Flags().Changed("copy") {
+		copyToClipboard = cfg.AutoCopy
+	}
+
 	printInfo("%s Fetching staged git changes...\n", cyan("🔍"))
 	diff, err := git.GetStagedDiff()
 	if err != nil {
