@@ -73,10 +73,7 @@ func runGenerate(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// An explicit -c/--copy wins; otherwise fall back to the auto_copy setting.
-	if !cmd.Flags().Changed("copy") {
-		copyToClipboard = cfg.AutoCopy
-	}
+	copyToClipboard = resolveCopyMode(cmd.Flags().Changed("copy"), copyToClipboard, cfg.AutoCopy)
 
 	printInfo("%s Fetching staged git changes...\n", cyan("🔍"))
 	diff, err := git.GetStagedDiff()
@@ -204,12 +201,7 @@ func handleUserSelection(candidates []string) {
 		OptionCancel     = "🚫 Cancel"
 	)
 
-	// The accept action commits by default, but --copy swaps that for a
-	// clipboard write, so the label has to follow suit.
-	acceptLabel := "Accept & Commit"
-	if copyToClipboard {
-		acceptLabel = "Accept & Copy"
-	}
+	acceptLabel := acceptActionLabel(copyToClipboard)
 
 	selectOptions := append(candidates, OptionEditManual, OptionCancel)
 	var selectedOption string
@@ -287,6 +279,26 @@ func handleUserSelection(candidates []string) {
 
 // finishWithMessage completes the run with the message the user settled on:
 // --copy puts it on the clipboard, otherwise it is committed.
+// resolveCopyMode reports whether this run copies to the clipboard instead of
+// committing. An explicit -c/--copy always wins; otherwise the auto_copy config
+// setting decides. flagChanged is what separates a typed "--copy=false" from a
+// flag that was never passed at all.
+func resolveCopyMode(flagChanged, flagValue, autoCopy bool) bool {
+	if flagChanged {
+		return flagValue
+	}
+	return autoCopy
+}
+
+// acceptActionLabel names the confirm action, which commits by default but
+// writes to the clipboard in copy mode.
+func acceptActionLabel(copyMode bool) string {
+	if copyMode {
+		return "Accept & Copy"
+	}
+	return "Accept & Commit"
+}
+
 func finishWithMessage(msg string) {
 	if copyToClipboard {
 		copyAndFinish(msg)
