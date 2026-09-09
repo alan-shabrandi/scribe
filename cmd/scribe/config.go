@@ -62,12 +62,10 @@ var configSetCmd = &cobra.Command{
 		key := args[0]
 		value := args[1]
 
-		home, err := configFilePath()
+		configPath, err := configFilePath()
 		if err != nil {
 			return fmt.Errorf("failed to find home directory: %w", err)
 		}
-
-		configPath := filepath.Join(home, ".scribe.yaml")
 
 		v := viper.New()
 		v.SetConfigFile(configPath)
