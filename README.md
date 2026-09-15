@@ -15,6 +15,7 @@ Scribe fits into your existing Git workflow in different ways:
 - **CLI** — Generate commit messages from any terminal.
 - **Git Hook** — Integrate with `git commit` and generate messages automatically.
 - **VS Code Extension** — Generate commit messages directly from the Source Control panel.
+- **Auto-Copy Setting** - Commit messages can be auto copied to clipboard to paste manually as you choose.
 
 The CLI is the core of the project, while the VS Code extension provides a native experience for VS Code users.
 
@@ -75,6 +76,12 @@ scribe generate
 
 Scribe analyzes your staged changes and suggests commit message candidates.
 
+
+```bash
+scribe generate -c
+```
+Generates a commit message, once completed auto copies to the users clipboard.
+
 ## Configuration
 
 Configuration is stored in:
@@ -89,6 +96,7 @@ Common settings:
 - model
 - style
 - api_key
+- auto_copy
 
 ## Usage
 
