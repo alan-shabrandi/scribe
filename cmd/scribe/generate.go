@@ -12,6 +12,7 @@ import (
 	"github.com/alan-shabrandi/scribe/internal/config"
 	"github.com/alan-shabrandi/scribe/internal/git"
 	"github.com/alan-shabrandi/scribe/internal/llm"
+	"github.com/atotto/clipboard"
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -33,6 +34,7 @@ var (
 var (
 	hookMsgFilePath string
 	jsonOutput      bool
+	copyToClipboard bool
 )
 
 var generateCmd = &cobra.Command{
@@ -45,6 +47,7 @@ var generateCmd = &cobra.Command{
 func init() {
 	generateCmd.Flags().StringVar(&hookMsgFilePath, "hook-mode", "", "Write generated message directly to Git hook msg file")
 	generateCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output generated commit messages in JSON format")
+	generateCmd.Flags().BoolVarP(&copyToClipboard, "copy", "c", false, "Copy the chosen commit message to the clipboard instead of committing")
 	rootCmd.AddCommand(generateCmd)
 }
 
@@ -69,6 +72,8 @@ func runGenerate(cmd *cobra.Command, args []string) {
 		printErr("%s Error: API key not set.\n", red("❌"))
 		os.Exit(1)
 	}
+
+	copyToClipboard = resolveCopyMode(cmd.Flags().Changed("copy"), copyToClipboard, cfg.AutoCopy)
 
 	printInfo("%s Fetching staged git changes...\n", cyan("🔍"))
 	diff, err := git.GetStagedDiff()
@@ -196,6 +201,8 @@ func handleUserSelection(candidates []string) {
 		OptionCancel     = "🚫 Cancel"
 	)
 
+	acceptLabel := acceptActionLabel(copyToClipboard)
+
 	selectOptions := append(candidates, OptionEditManual, OptionCancel)
 	var selectedOption string
 
@@ -238,14 +245,14 @@ func handleUserSelection(candidates []string) {
 			fmt.Printf("%s Edit failed: %v\n", red("❌"), err)
 			os.Exit(1)
 		}
-		commitAndFinish(editedMessage)
+		finishWithMessage(editedMessage)
 
 	default:
 		var finalAction string
 		actionPrompt := &survey.Select{
 			Message: fmt.Sprintf("Selected: \"%s\"\nWhat would you like to do?", green(selectedOption)),
-			Options: []string{"Accept & Commit", "Edit in system editor", "Cancel"},
-			Default: "Accept & Commit",
+			Options: []string{acceptLabel, "Edit in system editor", "Cancel"},
+			Default: acceptLabel,
 		}
 
 		if err := survey.AskOne(actionPrompt, &finalAction, stdioOpt); err != nil {
@@ -253,8 +260,8 @@ func handleUserSelection(candidates []string) {
 		}
 
 		switch finalAction {
-		case "Accept & Commit":
-			commitAndFinish(selectedOption)
+		case acceptLabel:
+			finishWithMessage(selectedOption)
 
 		case "Edit in system editor":
 			editedMessage, err := git.OpenInEditor(selectedOption)
@@ -262,12 +269,52 @@ func handleUserSelection(candidates []string) {
 				fmt.Printf("%s Edit failed: %v\n", red("❌"), err)
 				os.Exit(1)
 			}
-			commitAndFinish(editedMessage)
+			finishWithMessage(editedMessage)
 
 		default:
 			fmt.Printf("%s Commit cancelled.\n", yellow("🚫"))
 		}
 	}
+}
+
+// finishWithMessage completes the run with the message the user settled on:
+// --copy puts it on the clipboard, otherwise it is committed.
+// resolveCopyMode reports whether this run copies to the clipboard instead of
+// committing. An explicit -c/--copy always wins; otherwise the auto_copy config
+// setting decides. flagChanged is what separates a typed "--copy=false" from a
+// flag that was never passed at all.
+func resolveCopyMode(flagChanged, flagValue, autoCopy bool) bool {
+	if flagChanged {
+		return flagValue
+	}
+	return autoCopy
+}
+
+// acceptActionLabel names the confirm action, which commits by default but
+// writes to the clipboard in copy mode.
+func acceptActionLabel(copyMode bool) string {
+	if copyMode {
+		return "Accept & Copy"
+	}
+	return "Accept & Commit"
+}
+
+func finishWithMessage(msg string) {
+	if copyToClipboard {
+		copyAndFinish(msg)
+		return
+	}
+	commitAndFinish(msg)
+}
+
+func copyAndFinish(msg string) {
+	if err := clipboard.WriteAll(msg); err != nil {
+		fmt.Printf("%s Failed to copy to clipboard: %v\n", red("❌"), err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("%s Copied commit message to clipboard:\n\n%s\n\n", green("📋"), msg)
+	fmt.Printf("%s Nothing was committed. Run 'git commit' when you are ready.\n", cyan("ℹ️"))
 }
 
 func commitAndFinish(msg string) {

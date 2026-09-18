@@ -4,6 +4,7 @@ go 1.25.5
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
+	github.com/atotto/clipboard v0.1.4
 	github.com/briandowns/spinner v1.23.2
 	github.com/fatih/color v1.19.0
 	github.com/spf13/cobra v1.10.2

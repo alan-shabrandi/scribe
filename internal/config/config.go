@@ -12,13 +12,16 @@ type Config struct {
 	APIKey   string `mapstructure:"api_key"`
 	Model    string `mapstructure:"model"`
 	Style    string `mapstructure:"style"`
+	// AutoCopy makes `scribe generate` behave as if --copy were passed. The -c
+	// flag still wins when it is given explicitly.
+	AutoCopy bool `mapstructure:"auto_copy"`
 }
 
 func LoadConfig() (*Config, error) {
 	viper.SetDefault("provider", "gemini")
 	viper.SetDefault("model", "gemini-1.5-flash")
 	viper.SetDefault("style", "conventional")
-
+	viper.SetDefault("auto_copy", false)
 	viper.SetEnvPrefix("SCRIBE")
 	viper.AutomaticEnv()
 
