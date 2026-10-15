@@ -22,7 +22,7 @@ The CLI is the core of the project, while the VS Code extension provides a nativ
 👉 https://marketplace.visualstudio.com/items?itemName=alan-shabrandi.scribe-vscode
 
 ## Table of Contents
-
+This is a test add
 - Features
 - Installation
 - Quick Start
