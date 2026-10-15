@@ -115,7 +115,7 @@ var configSetCmd = &cobra.Command{
 		value := args[1]
 
 		if key == "api_key" {
-			return setAPIKey(cmd, value)
+			return setAPIKey(cmd, setProvider, value, setPlaintext)
 		}
 
 		configPath, err := configFilePath()
@@ -132,10 +132,11 @@ var configSetCmd = &cobra.Command{
 	},
 }
 
-// setAPIKey stores an API key, by default in the OS credential store rather
-// than in ~/.scribe.yaml. It never echoes the key back unmasked, since the
-// terminal it would land in is scrollback, screenshares and CI logs.
-func setAPIKey(cmd *cobra.Command, value string) error {
+// setAPIKey stores an API key for provider (the configured provider when
+// empty), in the OS credential store unless plaintext asks for ~/.scribe.yaml.
+// It never echoes the key back unmasked, since the terminal it would land in
+// is scrollback, screenshares and CI logs.
+func setAPIKey(cmd *cobra.Command, provider, value string, plaintext bool) error {
 	out := cmd.OutOrStdout()
 
 	value = strings.TrimSpace(value)
@@ -152,7 +153,7 @@ func setAPIKey(cmd *cobra.Command, value string) error {
 		return err
 	}
 
-	provider := strings.TrimSpace(setProvider)
+	provider = strings.TrimSpace(provider)
 	if provider == "" {
 		provider = effectiveProvider(raw)
 	}
@@ -164,7 +165,7 @@ func setAPIKey(cmd *cobra.Command, value string) error {
 		fmt.Fprintln(out, warning)
 	}
 
-	if setPlaintext {
+	if plaintext {
 		if err := writeConfigValue(configPath, "api_key", value); err != nil {
 			return err
 		}

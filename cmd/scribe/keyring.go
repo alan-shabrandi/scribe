@@ -35,45 +35,51 @@ var keyringStatusCmd = &cobra.Command{
 	Short: "Show whether the credential store is reachable and which keys it holds",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		out := cmd.OutOrStdout()
-
-		fmt.Fprintf(out, "Credential store: %s\n", secrets.StoreName())
-		fmt.Fprintf(out, "Entry name:       %s\n", secrets.Service)
-
-		if err := secrets.Available(); err != nil {
-			fmt.Fprintf(out, "Availability:     %s unavailable\n\n", red("✖"))
-			fmt.Fprintf(out, "%v\n\n", err)
-			fmt.Fprintf(out, "On a headless Linux box there is usually no Secret Service running. Use\n")
-			fmt.Fprintf(out, "an environment variable (SCRIBE_API_KEY) or 'scribe config set api_key\n")
-			fmt.Fprintf(out, "--plaintext' there instead.\n")
-			return nil
-		}
-		fmt.Fprintf(out, "Availability:     %s available\n\n", green("✔"))
-
-		fmt.Fprintln(out, "Stored keys:")
-		for _, provider := range secrets.Providers {
-			key, err := secrets.Get(provider)
-			switch {
-			case err == nil:
-				fmt.Fprintf(out, "  %-8s %s\n", provider, maskSecret(key))
-			case errors.Is(err, secrets.ErrNotFound):
-				fmt.Fprintf(out, "  %-8s %s\n", provider, "(none)")
-			default:
-				fmt.Fprintf(out, "  %-8s %s %v\n", provider, yellow("⚠️"), err)
-			}
-		}
-
-		// LoadConfig is the only thing that knows the full precedence order, so
-		// ask it rather than re-deriving which key actually wins.
-		cfg, err := config.LoadConfig()
-		if err != nil {
-			return err
-		}
-		fmt.Fprintf(out, "\nActive provider:  %s\n", cfg.Provider)
-		fmt.Fprintf(out, "Key in use:       %s\n", cfg.APIKeySource)
-
-		return nil
+		return printKeyringStatus(cmd)
 	},
+}
+
+// printKeyringStatus reports whether the credential store is reachable, which
+// providers have a key in it, and which key `scribe generate` would use.
+func printKeyringStatus(cmd *cobra.Command) error {
+	out := cmd.OutOrStdout()
+
+	fmt.Fprintf(out, "Credential store: %s\n", secrets.StoreName())
+	fmt.Fprintf(out, "Entry name:       %s\n", secrets.Service)
+
+	if err := secrets.Available(); err != nil {
+		fmt.Fprintf(out, "Availability:     %s unavailable\n\n", red("✖"))
+		fmt.Fprintf(out, "%v\n\n", err)
+		fmt.Fprintf(out, "On a headless Linux box there is usually no Secret Service running. Use\n")
+		fmt.Fprintf(out, "an environment variable (SCRIBE_API_KEY) or 'scribe config set api_key\n")
+		fmt.Fprintf(out, "--plaintext' there instead.\n")
+		return nil
+	}
+	fmt.Fprintf(out, "Availability:     %s available\n\n", green("✔"))
+
+	fmt.Fprintln(out, "Stored keys:")
+	for _, provider := range secrets.Providers {
+		key, err := secrets.Get(provider)
+		switch {
+		case err == nil:
+			fmt.Fprintf(out, "  %-8s %s\n", provider, maskSecret(key))
+		case errors.Is(err, secrets.ErrNotFound):
+			fmt.Fprintf(out, "  %-8s %s\n", provider, "(none)")
+		default:
+			fmt.Fprintf(out, "  %-8s %s %v\n", provider, yellow("⚠️"), err)
+		}
+	}
+
+	// LoadConfig is the only thing that knows the full precedence order, so
+	// ask it rather than re-deriving which key actually wins.
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "\nActive provider:  %s\n", cfg.Provider)
+	fmt.Fprintf(out, "Key in use:       %s\n", cfg.APIKeySource)
+
+	return nil
 }
 
 var keyringDeleteCmd = &cobra.Command{
@@ -84,44 +90,49 @@ var keyringDeleteCmd = &cobra.Command{
 		"or in an environment variable is left alone.",
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		out := cmd.OutOrStdout()
-
 		provider, err := providerArg(args)
 		if err != nil {
 			return err
 		}
-
-		// Checking first turns "nothing was stored" into a clear message rather
-		// than an error on an action that had nothing to do.
-		if _, err := secrets.Get(provider); errors.Is(err, secrets.ErrNotFound) {
-			fmt.Fprintf(out, "No %s API key in %s — nothing to delete.\n", secrets.Account(provider), secrets.StoreName())
-			return nil
-		} else if err != nil {
-			return err
-		}
-
-		if !keyringAssumeYes {
-			confirmed := false
-			prompt := &survey.Confirm{
-				Message: fmt.Sprintf("Delete the %s API key from %s?", secrets.Account(provider), secrets.StoreName()),
-				Default: false,
-			}
-			if err := survey.AskOne(prompt, &confirmed); err != nil {
-				return err
-			}
-			if !confirmed {
-				fmt.Fprintf(out, "%s Left the key in place.\n", yellow("🚫"))
-				return nil
-			}
-		}
-
-		if err := secrets.Delete(provider); err != nil {
-			return err
-		}
-
-		fmt.Fprintf(out, "✔ Deleted the %s API key from %s\n", secrets.Account(provider), secrets.StoreName())
-		return nil
+		return deleteStoredKey(cmd, provider, keyringAssumeYes)
 	},
+}
+
+// deleteStoredKey removes provider's key from the credential store, asking
+// for confirmation first unless assumeYes is set.
+func deleteStoredKey(cmd *cobra.Command, provider string, assumeYes bool) error {
+	out := cmd.OutOrStdout()
+
+	// Checking first turns "nothing was stored" into a clear message rather
+	// than an error on an action that had nothing to do.
+	if _, err := secrets.Get(provider); errors.Is(err, secrets.ErrNotFound) {
+		fmt.Fprintf(out, "No %s API key in %s — nothing to delete.\n", secrets.Account(provider), secrets.StoreName())
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	if !assumeYes {
+		confirmed := false
+		prompt := &survey.Confirm{
+			Message: fmt.Sprintf("Delete the %s API key from %s?", secrets.Account(provider), secrets.StoreName()),
+			Default: false,
+		}
+		if err := survey.AskOne(prompt, &confirmed); err != nil {
+			return err
+		}
+		if !confirmed {
+			fmt.Fprintf(out, "%s Left the key in place.\n", yellow("🚫"))
+			return nil
+		}
+	}
+
+	if err := secrets.Delete(provider); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(out, "✔ Deleted the %s API key from %s\n", secrets.Account(provider), secrets.StoreName())
+	return nil
 }
 
 var keyringMigrateCmd = &cobra.Command{
