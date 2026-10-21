@@ -70,6 +70,10 @@ scribe config set provider openai
 scribe config set api_key YOUR_API_KEY
 ```
 
+The API key is stored in your operating system's credential store (macOS
+Keychain, Windows Credential Manager, or the Linux Secret Service), not in
+`~/.scribe.yaml`. Run `scribe config keyring status` to check what is stored.
+
 ---
 
 ## Usage

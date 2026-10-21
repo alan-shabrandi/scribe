@@ -12,6 +12,7 @@ import (
 	"github.com/alan-shabrandi/scribe/internal/config"
 	"github.com/alan-shabrandi/scribe/internal/git"
 	"github.com/alan-shabrandi/scribe/internal/llm"
+	"github.com/alan-shabrandi/scribe/internal/secrets"
 	"github.com/atotto/clipboard"
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
@@ -69,7 +70,9 @@ func runGenerate(cmd *cobra.Command, args []string) {
 	}
 
 	if cfg.APIKey == "" && cfg.Provider != "ollama" {
-		printErr("%s Error: API key not set.\n", red("❌"))
+		printErr("%s Error: no %s API key found.\n", red("❌"), cfg.Provider)
+		printErr("   Store one with: scribe config set api_key YOUR_KEY\n")
+		printErr("   It goes into %s rather than a plaintext file.\n", secrets.StoreName())
 		os.Exit(1)
 	}
 

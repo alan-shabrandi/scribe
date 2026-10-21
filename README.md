@@ -27,6 +27,7 @@ The CLI is the core of the project, while the VS Code extension provides a nativ
 - Installation
 - Quick Start
 - Configuration
+- API Key Storage
 - Usage
 - Git Hook Integration
 - Performance
@@ -37,6 +38,7 @@ The CLI is the core of the project, while the VS Code extension provides a nativ
 ## Features
 
 - Supports OpenAI, Claude, Gemini, and Ollama
+- Stores API keys in your OS credential store, not in a plaintext file
 - Interactive CLI built with Cobra and Survey
 - Detects ticket IDs from branch names
 - SHA-256 caching for identical staged diffs
@@ -74,6 +76,9 @@ git add .
 scribe generate
 ```
 
+The API key goes into your operating system's credential store rather than into
+`~/.scribe.yaml` — see [API Key Storage](#api-key-storage).
+
 Scribe analyzes your staged changes and suggests commit message candidates.
 
 
@@ -95,8 +100,76 @@ Common settings:
 - provider
 - model
 - style
-- api_key
 - auto_copy
+
+`api_key` is deliberately absent from that list: it is stored outside the config
+file. See [API Key Storage](#api-key-storage).
+
+Inspect the current configuration (keys are always masked):
+
+```bash
+scribe config show
+```
+
+## API Key Storage
+
+Scribe keeps API keys in your operating system's native credential store
+instead of in plaintext:
+
+| Platform | Store                                        |
+| -------- | -------------------------------------------- |
+| macOS    | Keychain                                     |
+| Windows  | Credential Manager                           |
+| Linux    | Secret Service (GNOME Keyring, KWallet, ...) |
+
+`scribe config set api_key` and `scribe init` write there by default. Keys are
+stored per provider under the entry name `scribe`, so keys for OpenAI, Claude
+and Gemini can coexist and switching `provider` picks up the matching key.
+
+```bash
+# Store a key for the configured provider
+scribe config set api_key YOUR_API_KEY
+
+# Store a key for another provider without switching to it
+scribe config set api_key YOUR_API_KEY --provider claude
+
+# See what is stored, and which key is actually in use
+scribe config keyring status
+
+# Move an existing plaintext api_key out of ~/.scribe.yaml
+scribe config keyring migrate
+
+# Remove a stored key
+scribe config keyring delete openai
+```
+
+### Where Scribe looks for a key
+
+Highest precedence first:
+
+1. `SCRIBE_API_KEY` — a deliberate per-shell override.
+2. `api_key` in `~/.scribe.yaml` — plaintext, but explicit, so editing the file
+   always has the effect you expect.
+3. The OS credential store, keyed by provider.
+4. The provider's own variable: `OPENAI_API_KEY` or `GEMINI_API_KEY`.
+
+Because the config file outranks the credential store, `scribe config set
+api_key` removes a plaintext `api_key` from `~/.scribe.yaml` after storing the
+new key, so the old one cannot keep being used silently.
+
+### When the credential store is not available
+
+Headless Linux machines, containers and CI runners often have no Secret Service
+running. Scribe does not fail there: it falls through to the environment
+variables above, and `scribe config keyring status` explains what it found. To
+write a key to the config file anyway:
+
+```bash
+scribe config set api_key YOUR_API_KEY --plaintext
+```
+
+That file is written with `0600` permissions, but it is still plaintext —
+anything able to read it can read the key.
 
 ## Usage
 
