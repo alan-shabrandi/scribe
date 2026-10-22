@@ -48,6 +48,9 @@ type Config struct {
 	// AutoCopy makes `scribe generate` behave as if --copy were passed. The -c
 	// flag still wins when it is given explicitly.
 	AutoCopy bool `mapstructure:"auto_copy"`
+	// SecretScan makes `scribe generate` refuse to send a diff that appears to
+	// contain credentials. --skip-secret-scan overrides it for a single run.
+	SecretScan bool `mapstructure:"secret_scan"`
 	// APIKeySource records which location APIKey was resolved from. It is
 	// derived at load time, not read from the config file.
 	APIKeySource KeySource `mapstructure:"-"`
@@ -58,6 +61,7 @@ func LoadConfig() (*Config, error) {
 	viper.SetDefault("model", DefaultModel)
 	viper.SetDefault("style", DefaultStyle)
 	viper.SetDefault("auto_copy", false)
+	viper.SetDefault("secret_scan", true)
 	viper.SetEnvPrefix(envPrefix)
 	viper.AutomaticEnv()
 
