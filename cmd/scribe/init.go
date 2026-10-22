@@ -29,6 +29,8 @@ type ConfigFile struct {
 	// Written explicitly rather than with omitempty: a visible "auto_copy: false"
 	// tells the reader the setting exists.
 	AutoCopy bool `yaml:"auto_copy"`
+	// Also written explicitly, so the reader can see how to turn it off.
+	SecretScan bool `yaml:"secret_scan"`
 }
 
 var (
@@ -137,7 +139,8 @@ func gatherUserConfig() (*ConfigFile, bool, error) {
 		APIKey:   apiKey,
 		Model:    model,
 		Style:    style,
-		AutoCopy: false,
+		AutoCopy:   false,
+		SecretScan: true,
 	}, useKeyring, nil
 }
 

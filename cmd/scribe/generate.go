@@ -13,6 +13,7 @@ import (
 	"github.com/alan-shabrandi/scribe/internal/git"
 	"github.com/alan-shabrandi/scribe/internal/llm"
 	"github.com/alan-shabrandi/scribe/internal/secrets"
+	"github.com/alan-shabrandi/scribe/internal/secretscan"
 	"github.com/atotto/clipboard"
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
@@ -36,6 +37,7 @@ var (
 	hookMsgFilePath string
 	jsonOutput      bool
 	copyToClipboard bool
+	skipSecretScan  bool
 )
 
 var generateCmd = &cobra.Command{
@@ -49,6 +51,7 @@ func init() {
 	generateCmd.Flags().StringVar(&hookMsgFilePath, "hook-mode", "", "Write generated message directly to Git hook msg file")
 	generateCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output generated commit messages in JSON format")
 	generateCmd.Flags().BoolVarP(&copyToClipboard, "copy", "c", false, "Copy the chosen commit message to the clipboard instead of committing")
+	generateCmd.Flags().BoolVar(&skipSecretScan, "skip-secret-scan", false, "Send the diff to the LLM even if it appears to contain secrets")
 	rootCmd.AddCommand(generateCmd)
 }
 
@@ -94,6 +97,18 @@ func runGenerate(cmd *cobra.Command, args []string) {
 		os.Exit(0)
 	}
 
+	// diff is already filtered and truncated, so this scans exactly what would
+	// leave the machine. It runs ahead of the cache too, so a staged secret is
+	// reported the same way whether or not a request would actually be made.
+	if shouldScanSecrets(cmd.Flags().Changed("skip-secret-scan"), skipSecretScan, cfg.SecretScan) {
+		if findings := secretscan.Scan(diff); len(findings) > 0 {
+			reportSecretFindings(findings, cfg.Provider)
+			os.Exit(1)
+		}
+	} else if skipSecretScan {
+		printInfo("%s Secret scan skipped (--skip-secret-scan). The diff is sent to %s as-is.\n", yellow("⚠️"), cfg.Provider)
+	}
+
 	branch, _ := git.GetCurrentBranch()
 	ticketID := git.ExtractTicketID(branch)
 	if ticketID != "" {
@@ -128,6 +143,46 @@ func runGenerate(cmd *cobra.Command, args []string) {
 	}
 
 	handleUserSelection(candidates)
+}
+
+// shouldScanSecrets reports whether this run scans the diff for secrets before
+// sending it. An explicit --skip-secret-scan always wins; otherwise the
+// secret_scan config setting decides.
+func shouldScanSecrets(flagChanged, skip, enabled bool) bool {
+	if flagChanged {
+		return !skip
+	}
+	return enabled
+}
+
+// reportSecretFindings explains why the run stopped. It goes to stderr so that
+// --json output stays clean, and every finding's text is already redacted, so
+// the secret itself never reaches scrollback or CI logs.
+func reportSecretFindings(findings []secretscan.Finding, provider string) {
+	noun := "secrets"
+	if len(findings) == 1 {
+		noun = "secret"
+	}
+	printErr("%s Secret scan blocked this request: %d potential %s found in staged changes.\n\n", red("❌"), len(findings), noun)
+
+	locWidth, ruleWidth := 0, 0
+	for _, f := range findings {
+		locWidth = max(locWidth, len(fmt.Sprintf("%s:%d", f.File, f.Line)))
+		ruleWidth = max(ruleWidth, len(f.RuleID)+2)
+	}
+
+	for _, f := range findings {
+		loc := fmt.Sprintf("%s:%d", f.File, f.Line)
+		ruleID := "[" + f.RuleID + "]"
+		printErr("   %s%*s  %s%*s  %s\n",
+			cyan(loc), locWidth-len(loc), "",
+			yellow(ruleID), ruleWidth-len(ruleID), "",
+			red(f.Text))
+	}
+
+	printErr("\n   Nothing was sent to %s. Remove the secrets and re-stage, or if these are\n", provider)
+	printErr("   false positives, re-run with --skip-secret-scan (or set secret_scan: false\n")
+	printErr("   in ~/%s).\n", configFileName)
 }
 
 func fetchCandidatesFromLLM(cmd *cobra.Command, cfg *config.Config, diff, ticketID string) []string {

@@ -96,7 +96,7 @@ func setupConfigEnv(t *testing.T) string {
 	t.Setenv("HOME", dir)
 
 	for _, key := range []string{
-		"SCRIBE_PROVIDER", "SCRIBE_API_KEY", "SCRIBE_MODEL", "SCRIBE_STYLE",
+		"SCRIBE_PROVIDER", "SCRIBE_API_KEY", "SCRIBE_MODEL", "SCRIBE_STYLE", "SCRIBE_SECRET_SCAN",
 		"OPENAI_API_KEY", "GEMINI_API_KEY",
 	} {
 		t.Setenv(key, "")
@@ -123,7 +123,7 @@ func TestLoadConfig_DefaultsWhenNoConfigFile(t *testing.T) {
 		t.Fatalf("LoadConfig() returned error: %v", err)
 	}
 
-	want := Config{Provider: "gemini", Model: "gemini-1.5-flash", Style: "conventional", APIKeySource: KeySourceNone}
+	want := Config{Provider: "gemini", Model: "gemini-1.5-flash", Style: "conventional", SecretScan: true, APIKeySource: KeySourceNone}
 	if *cfg != want {
 		t.Errorf("LoadConfig() = %+v, want %+v", *cfg, want)
 	}
@@ -143,7 +143,7 @@ style: descriptive
 		t.Fatalf("LoadConfig() returned error: %v", err)
 	}
 
-	want := Config{Provider: "openai", APIKey: "sk-from-file", Model: "gpt-4o", Style: "descriptive", APIKeySource: KeySourceConfigFile}
+	want := Config{Provider: "openai", APIKey: "sk-from-file", Model: "gpt-4o", Style: "descriptive", SecretScan: true, APIKeySource: KeySourceConfigFile}
 	if *cfg != want {
 		t.Errorf("LoadConfig() = %+v, want %+v", *cfg, want)
 	}
@@ -407,4 +407,47 @@ func TestLoadConfig_UnreachableKeyringIsNotFatal(t *testing.T) {
 	if cfg.APIKeySource != KeySourceProviderEnv {
 		t.Errorf("APIKeySource = %q, want %q", cfg.APIKeySource, KeySourceProviderEnv)
 	}
+}
+
+func TestLoadConfig_SecretScanCanBeDisabled(t *testing.T) {
+	t.Run("from the config file", func(t *testing.T) {
+		dir := setupConfigEnv(t)
+		writeConfigFile(t, dir, "secret_scan: false\n")
+
+		cfg, err := LoadConfig()
+		if err != nil {
+			t.Fatalf("LoadConfig() returned error: %v", err)
+		}
+		if cfg.SecretScan {
+			t.Error("SecretScan = true, want false from the config file")
+		}
+	})
+
+	// `scribe config set` writes values as strings, so a quoted "false" has to
+	// decode the same way.
+	t.Run("from a quoted config value", func(t *testing.T) {
+		dir := setupConfigEnv(t)
+		writeConfigFile(t, dir, "secret_scan: \"false\"\n")
+
+		cfg, err := LoadConfig()
+		if err != nil {
+			t.Fatalf("LoadConfig() returned error: %v", err)
+		}
+		if cfg.SecretScan {
+			t.Error("SecretScan = true, want false from a quoted value")
+		}
+	})
+
+	t.Run("from SCRIBE_SECRET_SCAN", func(t *testing.T) {
+		setupConfigEnv(t)
+		t.Setenv("SCRIBE_SECRET_SCAN", "false")
+
+		cfg, err := LoadConfig()
+		if err != nil {
+			t.Fatalf("LoadConfig() returned error: %v", err)
+		}
+		if cfg.SecretScan {
+			t.Error("SecretScan = true, want false from SCRIBE_SECRET_SCAN")
+		}
+	})
 }
