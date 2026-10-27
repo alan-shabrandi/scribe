@@ -15,7 +15,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
       const cwd = workspaceFolders[0].uri.fsPath;
 
-      const scribeCommand = "F:\\Learn\\IT\\Go\\projects\\scribe\\scribe.exe";
+      const scribeCommand = "scribe.exe";
 
       vscode.window.withProgress(
         {
