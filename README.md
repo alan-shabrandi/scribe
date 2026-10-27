@@ -101,9 +101,41 @@ Common settings:
 - model
 - style
 - auto_copy
+- secret_scan (default `true`, see [Secret Scanning](#secret-scanning))
 
 `api_key` is deliberately absent from that list: it is stored outside the config
 file. See [API Key Storage](#api-key-storage).
+
+## Secret Scanning
+
+Before `scribe generate` sends your staged diff to an LLM provider, it scans the
+diff locally for credentials. If it finds any, it stops, sends nothing, and
+lists each offending line with its file, line number and the matching rule. The
+secret itself is masked in that output.
+
+Detected:
+
+- AWS access key IDs and secret access keys
+- GitHub tokens (classic and fine-grained) and Slack tokens and webhook URLs
+- Generic API keys and tokens assigned to names like `api_key` or `client_secret`
+- PEM private keys (RSA, DSA, EC, OpenSSH, PGP)
+- Database connection strings with an embedded password (Postgres, MySQL,
+  MongoDB, Redis, AMQP, SQL Server)
+
+Obvious placeholders such as `${DB_PASSWORD}`, `<your-key>` or `xxxx` are
+ignored.
+
+If a finding is a false positive, skip the scan for one run:
+
+```bash
+scribe generate --skip-secret-scan
+```
+
+or turn it off entirely:
+
+```bash
+scribe config set secret_scan false
+```
 
 Inspect the current configuration (keys are always masked):
 

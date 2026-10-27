@@ -170,6 +170,62 @@ func TestResolveCopyMode(t *testing.T) {
 	}
 }
 
+func TestSkipSecretScanFlagRegistration(t *testing.T) {
+	f := generateCmd.Flags().Lookup("skip-secret-scan")
+	if f == nil {
+		t.Fatal("generateCmd has no --skip-secret-scan flag registered")
+	}
+
+	if f.DefValue != "false" {
+		t.Errorf("--skip-secret-scan default = %q, want %q", f.DefValue, "false")
+	}
+}
+
+func TestShouldScanSecrets(t *testing.T) {
+	tests := []struct {
+		name        string
+		flagChanged bool
+		skip        bool
+		enabled     bool
+		want        bool
+	}{
+		{
+			name:    "no flag and secret_scan on scans",
+			enabled: true,
+			want:    true,
+		},
+		{
+			name:    "no flag and secret_scan off does not scan",
+			enabled: false,
+			want:    false,
+		},
+		{
+			name:        "--skip-secret-scan wins over secret_scan on",
+			flagChanged: true,
+			skip:        true,
+			enabled:     true,
+			want:        false,
+		},
+		{
+			name:        "--skip-secret-scan=false wins over secret_scan off",
+			flagChanged: true,
+			skip:        false,
+			enabled:     false,
+			want:        true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shouldScanSecrets(tt.flagChanged, tt.skip, tt.enabled)
+			if got != tt.want {
+				t.Errorf("shouldScanSecrets(%v, %v, %v) = %v, want %v",
+					tt.flagChanged, tt.skip, tt.enabled, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestAcceptActionLabel(t *testing.T) {
 	tests := []struct {
 		name     string
